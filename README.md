@@ -1,10 +1,8 @@
-# ILSG_e
-
-My first big project in C 
+# ILSG_e 
 
 ---
 
-ILSG_e is text editor in terminal like vim
+ILSG_e is part of big system. In particular text editor in terminal like vim
 
 ## Aims:
 - Finish by 15 days
