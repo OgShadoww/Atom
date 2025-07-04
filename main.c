@@ -3,12 +3,12 @@
 #include<unistd.h>
 #include<string.h>
 
+#define MAX_LINES 1000
+
 typedef struct Line {
   int size;
   char *line;
 } Line;
-
-#define MAX_LINES 1000
 
 Line Lines[MAX_LINES];
 int Size = 0;
@@ -34,7 +34,7 @@ Line *open_file(char *filen) {
 }
 
 void inti_editor() {
-  
+   
 }
 
 int main(int arg, char **file) {
