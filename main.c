@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <termios.h>
+#include <wctype.h>
+#include <sys/ioctl.h>
 
 // ---------------
 // MAIN STRUCTRES
@@ -49,6 +51,12 @@ typedef struct Cursor {
   int y;
 } Cursor;
 
+typedef struct Window {
+  int width;
+  int height;
+  Line *screen;
+} Window;
+
 typedef struct Buffer {
   int mode;
   Line document[MAX_LINES];
@@ -56,10 +64,7 @@ typedef struct Buffer {
   Cursor cursor;
 } Buffer;
 
-
 Buffer Buff;
-
-
 
 // ----------
 // MAIN CODE 
@@ -99,23 +104,39 @@ void enable_raw_mode() {
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
 
-void inti_editor() {
+Window *create_window(Line *doc) {
+  Window *win = malloc(sizeof(Window));
 
+  struct winsize w;
+  ioctl(STDOUT_FILENO, TIOCGWINSZ, &w); 
+  win->height = w.ws_col;
+  win->width = w.ws_row;
+
+  win->screen = malloc(win->height);
+  for(int i = 0; i < win->height; i++) {
+    win->screen[i] = doc[i];
+  }
+
+  return win;
+}
+
+void inti_editor(char *file) {
+  open_file(file);  
+  Buff.cursor.x = 0;
+  Buff.cursor.y = 0;
+
+
+
+  enable_raw_mode();
 }
 
 int main(int arg, char **file) {
   if (arg < 2) {
     fprintf(stderr, "Usage: %s <filename>\n", file[0]);
     exit(1);
-  }
-  
-  inti_editor();
-  open_file(file[1]);
-  for (int i = 0; i < Buff.document_size; i++) {
-    write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
-  }
+  }  
 
-  enable_raw_mode();
+  inti_editor(file[1]);
 
   char c;
   while (read(STDIN_FILENO, &c, 1) == 1 && c != 'q') {
