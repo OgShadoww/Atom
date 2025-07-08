@@ -24,12 +24,18 @@ enum AnsiCode {
 const char *ansi_codes[] = {  
   [ANSI_EXIT] = "\b \b",
   [ANSI_CLEAR] = "\033[2J",
-  [ANSI_CLEAR_LINE] = "^[[2K",
-  [ANSI_CURSOR_LEFT] = "^[[1D",
-  [ANSI_CURSOR_RIGHT] = "^[[1C",
-  [ANSI_CURSOR_TOP] = "^[[1A",
-  [ANSI_CURSOR_DOWN] = "^[[1B",
+  [ANSI_CLEAR_LINE] = "\033[2K",
+  [ANSI_CURSOR_HIDE] = "\033[?25l",
+  [ANSI_CURSOR_SHOW] = "\033[?25h",
+  [ANSI_CURSOR_LEFT] = "\033[1D",
+  [ANSI_CURSOR_RIGHT] = "\033[1C",
+  [ANSI_CURSOR_TOP] = "\033[1A",
+  [ANSI_CURSOR_DOWN] = "\033[1B",
 };
+
+void ansi_emit(enum AnsiCode code) {
+  write(STDOUT_FILENO, ansi_codes[code], strlen(ansi_codes[code]));
+}
 
 struct termios OriginalTermios;
 
@@ -102,6 +108,8 @@ int main(int arg, char **file) {
     fprintf(stderr, "Usage: %s <filename>\n", file[0]);
     exit(1);
   }
+  
+  inti_editor();
   open_file(file[1]);
   for (int i = 0; i < Buff.document_size; i++) {
     write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
@@ -112,24 +120,21 @@ int main(int arg, char **file) {
   char c;
   while (read(STDIN_FILENO, &c, 1) == 1 && c != 'q') {
     if (c == 127) {
-      write(STDOUT_FILENO, ansi_codes[ANSI_EXIT], 3);
-    }
-    if(c == 107) {
-      write(STDOUT_FILENO, ansi_codes[ANSI_CURSOR_TOP], 6);
-    }
-    if(c == 106) {
-      write(STDOUT_FILENO, ansi_codes[ANSI_CURSOR_DOWN], 6);
-    }
-    if(c == 108) {
-      write(STDOUT_FILENO, ansi_codes[ANSI_CURSOR_RIGHT], 6);
-    }
-    if(c == 104) {
-      write(STDOUT_FILENO, ansi_codes[ANSI_CURSOR_LEFT], 6);
-    }
-    else {
+      ansi_emit(ANSI_EXIT);
+    } else if (c == 'k') {
+      ansi_emit(ANSI_CURSOR_TOP);
+    } else if (c == 'j') {
+      ansi_emit(ANSI_CURSOR_DOWN);
+    } else if (c == 'l') {
+      ansi_emit(ANSI_CURSOR_RIGHT);
+    } else if (c == 'h') {
+      ansi_emit(ANSI_CURSOR_LEFT);
+    } else {
       write(STDOUT_FILENO, &c, 1);
-    }
+    }  
   }
 
+
+  disable_raw_mode();
   return 0;
 }
