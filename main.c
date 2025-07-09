@@ -10,9 +10,6 @@
 // MAIN STRUCTRES
 // ---------------
 
-// Max amount of editors' lines
-#define MAX_LINES 1000
-
 // Ansi codes for control terminal
 enum AnsiCode {
   ANSI_EXIT,
@@ -62,13 +59,14 @@ typedef struct Cursor {
 typedef struct Window {
   int width;
   int height;
+  int scroll_y;
   Line *screen;
 } Window;
 
 // Buffer to keep all importante things in one place
 typedef struct Buffer {
   int mode;
-  Line document[MAX_LINES];
+  Line *document;
   int document_size;
   Cursor cursor;
 } Buffer;
@@ -84,6 +82,12 @@ Window Win;
 
 // Open file and write data to Buffer
 void open_editor(char *filen) {
+  for (int i = 0; i < Buff.document_size; ++i) {
+    free(Buff.document[i].line);
+  }
+  Buff.document_size = 0;
+
+
   FILE *file = fopen(filen, "r");
 
   if (file == NULL) {
@@ -121,17 +125,27 @@ void enable_raw_mode() {
 void create_window(Line *doc) {
   struct winsize w;
   ioctl(STDOUT_FILENO, TIOCGWINSZ, &w); 
-  Win.height = w.ws_col;
-  Win.width = w.ws_row;
+  Win.height = w.ws_row;
+  Win.width = w.ws_col;
+  Win.scroll_y = 0;
 
-  Win.screen = malloc(Win.height);
+  Win.screen = malloc(sizeof(Line) * Win.height);
   for(int i = 0; i < Win.height; i++) {
     Win.screen[i] = doc[i];
   }
 }
 
+void write_char(char c) {
+  //write(STDOUT_FILENO, &c, strlen(&c));
+}
+
+//
+void draw_editor() {
+  
+}
+
 // Initialization of Buffer 
-void inti_editor() {
+void init_editor() {
   Buff.cursor.x = 0;
   Buff.cursor.y = 0;
   Buff.mode = 1;
@@ -149,7 +163,7 @@ int main(int arg, char **file) {
     exit(1);
   }  
 
-  inti_editor();
+  init_editor();
   open_editor(file[1]);
   enable_raw_mode();
 
