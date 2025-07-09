@@ -9,8 +9,11 @@
 // ---------------
 // MAIN STRUCTRES
 // ---------------
+
+// Max amount of editors' lines
 #define MAX_LINES 1000
 
+// Ansi codes for control terminal
 enum AnsiCode {
   ANSI_EXIT,
   ANSI_CLEAR,
@@ -23,6 +26,7 @@ enum AnsiCode {
   ANSI_CURSOR_DOWN
 };
 
+//Array with ansi codes
 const char *ansi_codes[] = {  
   [ANSI_EXIT] = "\b \b",
   [ANSI_CLEAR] = "\033[2J",
@@ -35,28 +39,33 @@ const char *ansi_codes[] = {
   [ANSI_CURSOR_DOWN] = "\033[1B",
 };
 
+// Fucntion to emit ansi codes and run it
 void ansi_emit(enum AnsiCode code) {
   write(STDOUT_FILENO, ansi_codes[code], strlen(ansi_codes[code]));
 }
 
 struct termios OriginalTermios;
 
+// Document line
 typedef struct Line {
   int size;
   char *line;
 } Line;
 
+// Cursor 
 typedef struct Cursor {
   int x;
   int y;
 } Cursor;
 
+// Window that keep sizes of terminal and screen that include text from doucument that can be placed in screen
 typedef struct Window {
   int width;
   int height;
   Line *screen;
 } Window;
 
+// Buffer to keep all importante things in one place
 typedef struct Buffer {
   int mode;
   Line document[MAX_LINES];
@@ -64,14 +73,17 @@ typedef struct Buffer {
   Cursor cursor;
 } Buffer;
 
+// Initialization
 Buffer Buff;
+Window Win;
 
 // ----------
 // MAIN CODE 
 // ----------
 
 
-void open_file(char *filen) {
+// Open file and write data to Buffer
+void open_editor(char *filen) {
   FILE *file = fopen(filen, "r");
 
   if (file == NULL) {
@@ -91,6 +103,7 @@ void open_file(char *filen) {
   fclose(file);
 }
 
+// Functions to work with terminal text modes
 void disable_raw_mode() {
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &OriginalTermios);
 }
@@ -104,30 +117,30 @@ void enable_raw_mode() {
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
 
-Window *create_window(Line *doc) {
-  Window *win = malloc(sizeof(Window));
-
+// Set files in Window structure
+void create_window(Line *doc) {
   struct winsize w;
   ioctl(STDOUT_FILENO, TIOCGWINSZ, &w); 
-  win->height = w.ws_col;
-  win->width = w.ws_row;
+  Win.height = w.ws_col;
+  Win.width = w.ws_row;
 
-  win->screen = malloc(win->height);
-  for(int i = 0; i < win->height; i++) {
-    win->screen[i] = doc[i];
+  Win.screen = malloc(Win.height);
+  for(int i = 0; i < Win.height; i++) {
+    Win.screen[i] = doc[i];
   }
-
-  return win;
 }
 
-void inti_editor(char *file) {
-  open_file(file);  
+// Initialization of Buffer 
+void inti_editor() {
   Buff.cursor.x = 0;
   Buff.cursor.y = 0;
+  Buff.mode = 1;
 
+}
 
-
-  enable_raw_mode();
+// Processing key pressing
+void editor_key_press() {
+  
 }
 
 int main(int arg, char **file) {
@@ -136,7 +149,9 @@ int main(int arg, char **file) {
     exit(1);
   }  
 
-  inti_editor(file[1]);
+  inti_editor();
+  open_editor(file[1]);
+  enable_raw_mode();
 
   char c;
   while (read(STDIN_FILENO, &c, 1) == 1 && c != 'q') {
