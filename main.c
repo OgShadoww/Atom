@@ -68,6 +68,7 @@ typedef struct Buffer {
   int mode;
   Line *document;
   int document_size;
+  int document_capacity;
   Cursor cursor;
 } Buffer;
 
@@ -84,6 +85,7 @@ Window Win;
 void open_editor(char *filen) {
   for (int i = 0; i < Buff.document_size; ++i) {
     free(Buff.document[i].line);
+    Buff.document[i].line = NULL;
   }
   Buff.document_size = 0;
 
@@ -136,11 +138,23 @@ void create_window(Line *doc) {
 }
 
 void write_char(char c) {
-  //write(STDOUT_FILENO, &c, strlen(&c));
+
 }
 
-//
+void editor_key_press() {
+  
+}
+
+// Drawing editor to screen
 void draw_editor() {
+  ansi_emit(ANSI_CLEAR);
+  for(int i = 0; i < Win.height; i++) {
+    write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
+  }
+}
+
+//If we need more memory for our buffer
+void ensure_capacity() {
   
 }
 
@@ -149,12 +163,13 @@ void init_editor() {
   Buff.cursor.x = 0;
   Buff.cursor.y = 0;
   Buff.mode = 1;
+  Buff.document_capacity = 64;
+  Buff.document_size = 0;
 
-}
-
-// Processing key pressing
-void editor_key_press() {
-  
+  for(int i = 0; i < Buff.document_size; i++) {
+    Buff.document[i].line = NULL;
+    Buff.document[i].size = 0;
+  }
 }
 
 int main(int arg, char **file) {
@@ -166,24 +181,7 @@ int main(int arg, char **file) {
   init_editor();
   open_editor(file[1]);
   enable_raw_mode();
-
-  char c;
-  while (read(STDIN_FILENO, &c, 1) == 1 && c != 'q') {
-    if (c == 127) {
-      ansi_emit(ANSI_EXIT);
-    } else if (c == 'k') {
-      ansi_emit(ANSI_CURSOR_TOP);
-    } else if (c == 'j') {
-      ansi_emit(ANSI_CURSOR_DOWN);
-    } else if (c == 'l') {
-      ansi_emit(ANSI_CURSOR_RIGHT);
-    } else if (c == 'h') {
-      ansi_emit(ANSI_CURSOR_LEFT);
-    } else {
-      write(STDOUT_FILENO, &c, 1);
-    }  
-  }
-
+  draw_editor();
 
   disable_raw_mode();
   return 0;
