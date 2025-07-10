@@ -147,15 +147,30 @@ void editor_key_press() {
 
 // Drawing editor to screen
 void draw_editor() {
+  write(STDOUT_FILENO, "^[7", 6);
+  write(STDOUT_FILENO, "\033[H", 3);
   ansi_emit(ANSI_CLEAR);
+
   for(int i = 0; i < Win.height; i++) {
     write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
-  }
+  } 
 }
 
 //If we need more memory for our buffer
-void ensure_capacity() {
-  
+void ensure_document_capacity() {
+  if(Buff.document_size >= Buff.document_capacity) {
+    Buff.document_capacity *= 2;
+    Buff.document = realloc(Buff.document, sizeof(Line) * Buff.document_capacity);
+    if(Buff.document) {
+      perror("Realloc failled");
+      exit(1);
+    }
+
+    for(int i = Buff.document_size; i < Buff.document_capacity; i++) {
+      Buff.document->line = NULL;
+      Buff.document->size = 0;
+    }
+  }
 }
 
 // Initialization of Buffer 
@@ -165,6 +180,11 @@ void init_editor() {
   Buff.mode = 1;
   Buff.document_capacity = 64;
   Buff.document_size = 0;
+  Buff.document = malloc(sizeof(Line) * Buff.document_capacity);
+  if(!Buff.document) {
+    perror("Malloc failled");
+    exit(1);
+  }
 
   for(int i = 0; i < Buff.document_size; i++) {
     Buff.document[i].line = NULL;
@@ -180,9 +200,10 @@ int main(int arg, char **file) {
 
   init_editor();
   open_editor(file[1]);
+  create_window(Buff.document);
   enable_raw_mode();
   draw_editor();
-
+ 
   disable_raw_mode();
   return 0;
 }

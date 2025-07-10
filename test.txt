@@ -1,47 +1,15 @@
-#include<stdio.h>
+section .data
+  message db "Hello world", 10
+  len equ $ - message
 
-#define MAX 1000
+section .text
+  global _start
 
-void test() {
+_start:
 
-  
-  return;
-}
+  mov eax, 4
+  mov ebx, 1
+  mov ecx, message
+  mov edx, len
 
-
-int square(int a) {
-  return a*a;
-}
-
-
-
-
-TEST FOR LENGTH OF TERMIANL AND HOW WORKS TRANSFER OF TEXT
-
-
-
-
-
-// THIS IS TEST
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int main(void) {
-  
-
-  return 0;
-}
+  int 0x80
