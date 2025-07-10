@@ -10,6 +10,10 @@
 // MAIN STRUCTRES
 // ---------------
 
+#define INSERTING 0
+#define VIEWING 1
+#define COMMAND_MODE 2
+
 // Ansi codes for control terminal
 enum AnsiCode {
   ANSI_EXIT,
@@ -60,7 +64,6 @@ typedef struct Window {
   int width;
   int height;
   int scroll_y;
-  Line *screen;
 } Window;
 
 // Buffer to keep all importante things in one place
@@ -86,6 +89,7 @@ void open_editor(char *filen) {
   for (int i = 0; i < Buff.document_size; ++i) {
     free(Buff.document[i].line);
     Buff.document[i].line = NULL;
+    Buff.document[i].size = 0;
   }
   Buff.document_size = 0;
 
@@ -130,10 +134,15 @@ void create_window(Line *doc) {
   Win.height = w.ws_row;
   Win.width = w.ws_col;
   Win.scroll_y = 0;
+}
 
-  Win.screen = malloc(sizeof(Line) * Win.height);
-  for(int i = 0; i < Win.height; i++) {
-    Win.screen[i] = doc[i];
+void move_cursor(int x, int y) {
+  if(x >= 0 && x <= Win.width && y >= 0 && y <= Win.height) {
+    Buff.cursor.x = x;
+    Buff.cursor.y = y;
+    char buff[32];
+    snprintf(buff, sizeof(buff), "\033[%d;%dH", y, x);
+    write(STDOUT_FILENO, buff, strlen(buff));
   }
 }
 
@@ -141,19 +150,48 @@ void write_char(char c) {
 
 }
 
-void editor_key_press() {
-  
-}
-
 // Drawing editor to screen
 void draw_editor() {
-  write(STDOUT_FILENO, "^[7", 6);
-  write(STDOUT_FILENO, "\033[H", 3);
   ansi_emit(ANSI_CLEAR);
+  if(Buff.document_size < Win.height) {
+    for(int i = 0; i < Buff.document_size; i++) {
+      write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
+    } 
+  }
+  else {
+    for(int i = 0; i < Win.height; i++) {
+      write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
+    } 
+  }
+}
 
-  for(int i = 0; i < Win.height; i++) {
-    write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
-  } 
+void editor_key_press(int mode) {
+  char c;
+  if(mode == VIEWING) {
+    while(1) {
+      read(STDIN_FILENO, &c, sizeof(c)); 
+      switch (c) {
+        case 'h': 
+          //draw_editor();
+          move_cursor(Buff.cursor.x - 1, Buff.cursor.y);
+          break;
+        case 'l':
+          //draw_editor();
+          move_cursor(Buff.cursor.x + 1, Buff.cursor.y);
+          break;
+        case 'j': 
+          //draw_editor();
+          move_cursor(Buff.cursor.x, Buff.cursor.y - 1);
+          break;
+        case 'k': 
+          //draw_editor();
+          move_cursor(Buff.cursor.x, Buff.cursor.y + 1);
+          break;
+        case 'q':
+          return;
+      }
+    }
+  }
 }
 
 //If we need more memory for our buffer
@@ -177,7 +215,8 @@ void ensure_document_capacity() {
 void init_editor() {
   Buff.cursor.x = 0;
   Buff.cursor.y = 0;
-  Buff.mode = 1;
+  move_cursor(Buff.cursor.x, Buff.cursor.y);
+  Buff.mode = VIEWING;
   Buff.document_capacity = 64;
   Buff.document_size = 0;
   Buff.document = malloc(sizeof(Line) * Buff.document_capacity);
@@ -203,6 +242,7 @@ int main(int arg, char **file) {
   create_window(Buff.document);
   enable_raw_mode();
   draw_editor();
+  editor_key_press(Buff.mode);
  
   disable_raw_mode();
   return 0;
