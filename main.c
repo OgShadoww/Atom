@@ -172,20 +172,16 @@ void editor_key_press(int mode) {
       read(STDIN_FILENO, &c, sizeof(c)); 
       switch (c) {
         case 'h': 
-          //draw_editor();
           move_cursor(Buff.cursor.x - 1, Buff.cursor.y);
           break;
         case 'l':
-          //draw_editor();
           move_cursor(Buff.cursor.x + 1, Buff.cursor.y);
           break;
         case 'j': 
-          //draw_editor();
-          move_cursor(Buff.cursor.x, Buff.cursor.y - 1);
+          move_cursor(Buff.cursor.x, Buff.cursor.y + 1);
           break;
         case 'k': 
-          //draw_editor();
-          move_cursor(Buff.cursor.x, Buff.cursor.y + 1);
+          move_cursor(Buff.cursor.x, Buff.cursor.y - 1);
           break;
         case 'q':
           return;
@@ -199,7 +195,7 @@ void ensure_document_capacity() {
   if(Buff.document_size >= Buff.document_capacity) {
     Buff.document_capacity *= 2;
     Buff.document = realloc(Buff.document, sizeof(Line) * Buff.document_capacity);
-    if(Buff.document) {
+    if(!Buff.document) {
       perror("Realloc failled");
       exit(1);
     }
