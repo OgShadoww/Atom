@@ -136,20 +136,6 @@ void create_window(Line *doc) {
   Win.scroll_y = 0;
 }
 
-void move_cursor(int x, int y) {
-  if(x >= 0 && x <= Win.width && y >= 0 && y <= Win.height) {
-    Buff.cursor.x = x;
-    Buff.cursor.y = y;
-    char buff[32];
-    snprintf(buff, sizeof(buff), "\033[%d;%dH", y, x);
-    write(STDOUT_FILENO, buff, strlen(buff));
-  }
-}
-
-void write_char(char c) {
-
-}
-
 // Drawing editor to screen
 void draw_editor() {
   ansi_emit(ANSI_CLEAR);
@@ -159,10 +145,33 @@ void draw_editor() {
     } 
   }
   else {
-    for(int i = 0; i < Win.height; i++) {
+    for(int i = Win.scroll_y; i < Win.height; i++) {
       write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
     } 
   }
+}
+
+
+void scroll_editor() {
+  Win.scroll_y += 1;
+  draw_editor();
+}
+
+void move_cursor(int x, int y) {
+  if(x >= 0 && x <= Win.width && y >= 0 && y <= Win.height) {
+    Buff.cursor.x = x;
+    Buff.cursor.y = y;
+    char buff[32];
+    snprintf(buff, sizeof(buff), "\033[%d;%dH", y, x);
+    write(STDOUT_FILENO, buff, strlen(buff));
+  }
+  if(y > Win.height && Win.scroll_y < Buff.document_size - Win.height) {
+    
+  }
+}
+
+void write_char(char c) {
+
 }
 
 void editor_key_press(int mode) {
@@ -227,6 +236,13 @@ void init_editor() {
   }
 }
 
+void free_editor() {
+  for(int i = 0; i < Buff.document_capacity; i++) {
+    free(Buff.document[i].line);
+  }
+  free(Buff.document);
+}
+
 int main(int arg, char **file) {
   if (arg < 2) {
     fprintf(stderr, "Usage: %s <filename>\n", file[0]);
@@ -239,7 +255,9 @@ int main(int arg, char **file) {
   enable_raw_mode();
   draw_editor();
   editor_key_press(Buff.mode);
+
  
+  free_editor();
   disable_raw_mode();
   return 0;
 }
