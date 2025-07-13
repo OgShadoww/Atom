@@ -10,6 +10,7 @@
 // MAIN STRUCTRES
 // ---------------
 
+// Edtior modes
 #define INSERTING 0
 #define VIEWING 1
 #define COMMAND_MODE 2
@@ -83,16 +84,40 @@ Window Win;
 // MAIN CODE 
 // ----------
 
+void free_editor() {
+  for(int i = 0; i < Buff.document_size; i++) {
+    if(Buff.document[i].line != NULL) {
+      free(Buff.document[i].line);
+    }
+  }
+  free(Buff.document);
+}
+
+
+void ensure_document_capacity() {
+  if(Buff.document_size >= Buff.document_capacity) {
+    Buff.document_capacity *= 2;
+    Buff.document = realloc(Buff.document, sizeof(Line) * Buff.document_capacity);
+    if(!Buff.document) {
+      perror("Realloc failled");
+      exit(1);
+    }
+
+    for(int i = Buff.document_size; i < Buff.document_capacity; i++) {
+      Buff.document[i].line = NULL;
+      Buff.document[i].size = 0;
+    }
+  }
+}
 
 // Open file and write data to Buffer
 void open_editor(char *filen) {
-  for (int i = 0; i < Buff.document_size; ++i) {
+  for (int i = 0; i < Buff.document_size; i++) {
     free(Buff.document[i].line);
     Buff.document[i].line = NULL;
     Buff.document[i].size = 0;
   }
   Buff.document_size = 0;
-
 
   FILE *file = fopen(filen, "r");
 
@@ -103,9 +128,15 @@ void open_editor(char *filen) {
 
   char buffer[128];
   Buff.document_size = 0;
-  while (fgets(buffer, sizeof(buffer), file)) {
+  while (fgets(buffer, sizeof(buffer), file)) {  
+    ensure_document_capacity();
     Buff.document[Buff.document_size].size = strlen(buffer);
     Buff.document[Buff.document_size].line = malloc(Buff.document[Buff.document_size].size + 1);
+    if(!Buff.document[Buff.document_size].line) {
+      perror("Malloc buffer line failled");
+      fclose(file);
+      return;
+    }
     strcpy(Buff.document[Buff.document_size].line, buffer);
     Buff.document_size++;
   }
@@ -128,7 +159,7 @@ void enable_raw_mode() {
 }
 
 // Set files in Window structure
-void create_window(Line *doc) {
+void create_window() {
   struct winsize w;
   ioctl(STDOUT_FILENO, TIOCGWINSZ, &w); 
   Win.height = w.ws_row;
@@ -136,38 +167,26 @@ void create_window(Line *doc) {
   Win.scroll_y = 0;
 }
 
-// Drawing editor to screen
-void draw_editor() {
-  ansi_emit(ANSI_CLEAR);
-  if(Buff.document_size < Win.height) {
-    for(int i = 0; i < Buff.document_size; i++) {
-      write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
-    } 
-  }
-  else {
-    for(int i = Win.scroll_y; i < Win.height; i++) {
-      write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
-    } 
-  }
-}
-
-
-void scroll_editor() {
-  Win.scroll_y += 1;
-  draw_editor();
-}
-
 void move_cursor(int x, int y) {
-  if(x >= 0 && x <= Win.width && y >= 0 && y <= Win.height) {
-    Buff.cursor.x = x;
-    Buff.cursor.y = y;
-    char buff[32];
-    snprintf(buff, sizeof(buff), "\033[%d;%dH", y, x);
-    write(STDOUT_FILENO, buff, strlen(buff));
+  if (y < 0) {
+    y = 0;
   }
-  if(y > Win.height && Win.scroll_y < Buff.document_size - Win.height) {
-    
+  if(y >= Buff.document_size) {
+    y = Buff.document_size - 1;
   }
+
+  int line_len = Buff.document[y].size;
+  if(x < 0) {
+    x = 0;
+  }
+  if(x >= line_len) {
+    x = line_len;
+  }
+
+  Buff.cursor.x = x;
+  Buff.cursor.y = y;
+
+  
 }
 
 void write_char(char c) {
@@ -199,28 +218,10 @@ void editor_key_press(int mode) {
   }
 }
 
-//If we need more memory for our buffer
-void ensure_document_capacity() {
-  if(Buff.document_size >= Buff.document_capacity) {
-    Buff.document_capacity *= 2;
-    Buff.document = realloc(Buff.document, sizeof(Line) * Buff.document_capacity);
-    if(!Buff.document) {
-      perror("Realloc failled");
-      exit(1);
-    }
-
-    for(int i = Buff.document_size; i < Buff.document_capacity; i++) {
-      Buff.document->line = NULL;
-      Buff.document->size = 0;
-    }
-  }
-}
-
 // Initialization of Buffer 
 void init_editor() {
   Buff.cursor.x = 0;
   Buff.cursor.y = 0;
-  move_cursor(Buff.cursor.x, Buff.cursor.y);
   Buff.mode = VIEWING;
   Buff.document_capacity = 64;
   Buff.document_size = 0;
@@ -230,18 +231,12 @@ void init_editor() {
     exit(1);
   }
 
-  for(int i = 0; i < Buff.document_size; i++) {
+  for(int i = 0; i < Buff.document_capacity; i++) {
     Buff.document[i].line = NULL;
     Buff.document[i].size = 0;
   }
 }
 
-void free_editor() {
-  for(int i = 0; i < Buff.document_capacity; i++) {
-    free(Buff.document[i].line);
-  }
-  free(Buff.document);
-}
 
 int main(int arg, char **file) {
   if (arg < 2) {
@@ -251,7 +246,7 @@ int main(int arg, char **file) {
 
   init_editor();
   open_editor(file[1]);
-  create_window(Buff.document);
+  create_window();
   enable_raw_mode();
   draw_editor();
   editor_key_press(Buff.mode);

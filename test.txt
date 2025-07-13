@@ -15,36 +15,41 @@ _start:
   int 0x80
 
 
-  Test
 
-  Test
+// Functions to work with terminal text modes
+void disable_raw_mode() {
+  tcsetattr(STDIN_FILENO, TCSAFLUSH, &OriginalTermios);
+}
 
-  Test
+void enable_raw_mode() {
+  tcgetattr(STDIN_FILENO, &OriginalTermios);
+  atexit(disable_raw_mode);
 
+  struct termios raw = OriginalTermios;
+  raw.c_lflag &= ~(ECHO | ICANON | ISIG);
+  tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+}
 
+// Set files in Window structure
+void create_window(Line *doc) {
+  struct winsize w;
+  ioctl(STDOUT_FILENO, TIOCGWINSZ, &w); 
+  Win.height = w.ws_row;
+  Win.width = w.ws_col;
+  Win.scroll_y = 0;
+}
 
-
-
-
-  Test
-
-
-
-  Test
-
-
-
-  Test
-
-
-
-
-
-
-  Test
-
-
-
-
-
-  Test
+// Drawing editor to screen
+void draw_editor() {
+  ansi_emit(ANSI_CLEAR);
+  if(Buff.document_size < Win.height) {
+    for(int i = 0; i < Buff.document_size; i++) {
+      write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
+    } 
+  }
+  else {
+    for(int i = Win.scroll_y; i < Win.height; i++) {
+      write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
+    } 
+  }
+}
