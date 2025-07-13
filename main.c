@@ -167,6 +167,15 @@ void create_window() {
   Win.scroll_y = 0;
 }
 
+void draw_editor() {
+  ansi_emit(ANSI_CLEAR);
+  write(STDOUT_FILENO, "\033[H", 3);
+  for(int i = 0; i < Win.height; i++) {
+    write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
+    //int real_index = Win.scroll_y + i; 
+  }
+}
+
 void move_cursor(int x, int y) {
   if (y < 0) {
     y = 0;
@@ -184,9 +193,7 @@ void move_cursor(int x, int y) {
   }
 
   Buff.cursor.x = x;
-  Buff.cursor.y = y;
-
-  
+  Buff.cursor.y = y; 
 }
 
 void write_char(char c) {
