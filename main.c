@@ -172,7 +172,6 @@ void draw_editor() {
   write(STDOUT_FILENO, "\033[H", 3);
   for(int i = 0; i < Win.height; i++) {
     write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
-    //int real_index = Win.scroll_y + i; 
   }
 }
 
