@@ -1,5 +1,5 @@
 CC = gcc
-TARGET = main
+TARGET = atom
 SRC = main.c
 
 $(TARGET): Makefile $(SRC)
