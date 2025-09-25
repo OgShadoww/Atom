@@ -1,8 +1,8 @@
-# ILSG_e 
+# Atom 
 
 ---
 
-ILSG_e is part of big system. In particular text editor in terminal like vim
+Atom is part of big system. In particular text editor in terminal like vim
 
 ## Aims:
 - Finish by 15 days
