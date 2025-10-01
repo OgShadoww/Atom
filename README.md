@@ -24,7 +24,7 @@ standard POSIX library.
 ├── LICENSE
 ├── Makefile        # Minimal build instructions (gcc main.c -o main)
 ├── main.c          # Editor implementation and terminal helpers
-└── test.txt        # Sample file for manual testing
+└── output.txt        # Sample file for manual testing
 ```
 
 The editor keeps its state in a central `Buffer` structure that holds the
