@@ -169,26 +169,44 @@ void create_window() {
 
 void draw_editor() {
   ansi_emit(ANSI_CLEAR);
-  write(STDOUT_FILENO, "\033[H", 3);
-  for(int i = 0; i < Win.height; i++) {
+  for(int i = Win.scroll_y; i < Win.height + Win.scroll_y - 1; i++) {
     write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
+  }
+  write(STDOUT_FILENO, "\x1b[H", 3);
+  fflush(stdout);
+}
+
+void scroll_window(int a) {
+  if(a > 0) {
+    Win.scroll_y++;
+    draw_editor();  
+  }
+  if(a < 0) {
+    Win.scroll_y--;
+    draw_editor();
   }
 }
 
 void move_cursor(int x, int y) {
-  if (y < 0) {
-    y = 0;
+  if (y < 1) {
+    y = 1;
+    if(Win.scroll_y > 0) {
+      scroll_window(-1);
+    }
   }
-  if(y >= Buff.document_size) {
-    y = Buff.document_size - 1;
+  if(y >= Win.height - 1 && Win.scroll_y <= Buff.document_size - Win.height) {
+    y = Win.height - 1;
+    scroll_window(1);
   }
-
-  int line_len = Buff.document[y].size;
-  if(x < 0) {
-    x = 0;
+  if(y >= Win.height - 1 && Win.scroll_y > Buff.document_size - Win.height) {
+    y = Win.height - 1;
   }
-  if(x >= line_len) {
-    x = line_len;
+  int line_len = Buff.document[Win.scroll_y + (y - 1)].size;
+  if(x < 1) {
+    x = 1;
+  }
+  if(x >= line_len - 1) {
+    x = line_len -1;
   }
 
   Buff.cursor.x = x;
