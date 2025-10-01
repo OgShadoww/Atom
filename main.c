@@ -193,6 +193,7 @@ void move_cursor(int x, int y) {
 
   Buff.cursor.x = x;
   Buff.cursor.y = y; 
+  dprintf(STDOUT_FILENO, "\033[%d;%dH", Buff.cursor.y, Buff.cursor.x);
 }
 
 void write_char(char c) {
@@ -207,15 +208,19 @@ void editor_key_press(int mode) {
       switch (c) {
         case 'h': 
           move_cursor(Buff.cursor.x - 1, Buff.cursor.y);
+          fflush(stdout);
           break;
         case 'l':
           move_cursor(Buff.cursor.x + 1, Buff.cursor.y);
+          fflush(stdout);
           break;
         case 'j': 
           move_cursor(Buff.cursor.x, Buff.cursor.y + 1);
+          fflush(stdout);
           break;
         case 'k': 
           move_cursor(Buff.cursor.x, Buff.cursor.y - 1);
+          fflush(stdout);
           break;
         case 'q':
           return;
