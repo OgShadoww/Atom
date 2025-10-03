@@ -173,7 +173,7 @@ void draw_editor() {
     write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
   }
   write(STDOUT_FILENO, "\x1b[H", 3);
-  fflush(stdout);
+  //fflush(stdout);
 }
 
 void scroll_window(int a) {

@@ -5,6 +5,12 @@ inspiration from modal editors such as Vim and focuses on providing a compact
 codebase that can be compiled with nothing more than a C compiler and the
 standard POSIX library.
 
+### Nearest goals:
+    1.Finish viewing mode:   
+        - Saving your x cordinate even after zero lines   
+        - Fully working scrolling in y and x way
+        - Fix buggs with scrolling system   
+
 ---
 
 ## ✨ Highlights
