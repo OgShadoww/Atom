@@ -6,10 +6,15 @@ codebase that can be compiled with nothing more than a C compiler and the
 standard POSIX library.
 
 ### Nearest goals:
-    1.Finish viewing mode:   
+    1. Finish viewing mode:   
         - Saving your x cordinate even after zero lines   
         - Fully working scrolling in y and x way
         - Fix buggs with scrolling system   
+    2. Creating line number in bottom and name of the file
+    3. Create main menu if run atom without file path
+    4. Inserting mode
+    5. Highting of syntax
+    6. Atom . functoin
 
 ---
 
