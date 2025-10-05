@@ -81,6 +81,16 @@ Buffer Buff;
 Window Win;
 
 // ----------
+// HELPERS
+// ----------
+
+static int clamp(int v, int lo, int hi) {
+  if(v > hi) return hi;
+  if(v < lo) return lo;
+  return v;
+}
+
+// ----------
 // MAIN CODE 
 // ----------
 
@@ -172,8 +182,6 @@ void draw_editor() {
   for(int i = Win.scroll_y; i < Win.height + Win.scroll_y - 1; i++) {
     write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
   }
-  write(STDOUT_FILENO, "\x1b[H", 3);
-  //fflush(stdout);
 }
 
 void scroll_window(int a) {
@@ -188,30 +196,20 @@ void scroll_window(int a) {
 }
 
 void move_cursor(int x, int y) {
-  if (y < 1) {
-    y = 1;
-    if(Win.scroll_y > 0) {
-      scroll_window(-1);
-    }
-  }
-  if(y >= Win.height - 1 && Win.scroll_y <= Buff.document_size - Win.height) {
-    y = Win.height - 1;
-    scroll_window(1);
-  }
-  if(y >= Win.height - 1 && Win.scroll_y > Buff.document_size - Win.height) {
-    y = Win.height - 1;
-  }
-  int line_len = Buff.document[Win.scroll_y + (y - 1)].size;
-  if(x < 1) {
-    x = 1;
-  }
-  if(x >= line_len - 1) {
-    x = line_len -1;
+  if (Buff.document_size <= 0) {
+    Buff.cursor.x = 0;
+    Buff.cursor.y = 0;
+    Win.scroll_y = 0;
+    draw_editor();
+    return;
   }
 
-  Buff.cursor.x = x;
-  Buff.cursor.y = y; 
-  dprintf(STDOUT_FILENO, "\033[%d;%dH", Buff.cursor.y, Buff.cursor.x);
+  int doc_x = clamp(x, 0, Buff.document[x].size - 1);
+  int doc_y = clamp(y, 0, Buff.document_size - 1);
+
+  Buff.cursor.x = doc_x;
+  Buff.cursor.y = doc_y; 
+  draw_editor();
 }
 
 void write_char(char c) {
@@ -224,24 +222,11 @@ void editor_key_press(int mode) {
     while(1) {
       read(STDIN_FILENO, &c, sizeof(c)); 
       switch (c) {
-        case 'h': 
-          move_cursor(Buff.cursor.x - 1, Buff.cursor.y);
-          fflush(stdout);
-          break;
-        case 'l':
-          move_cursor(Buff.cursor.x + 1, Buff.cursor.y);
-          fflush(stdout);
-          break;
-        case 'j': 
-          move_cursor(Buff.cursor.x, Buff.cursor.y + 1);
-          fflush(stdout);
-          break;
-        case 'k': 
-          move_cursor(Buff.cursor.x, Buff.cursor.y - 1);
-          fflush(stdout);
-          break;
-        case 'q':
-          return;
+        case 'h': move_cursor(Buff.cursor.x - 1, Buff.cursor.y); break;
+        case 'l': move_cursor(Buff.cursor.x + 1, Buff.cursor.y); break;
+        case 'j': move_cursor(Buff.cursor.x, Buff.cursor.y + 1); break;
+        case 'k': move_cursor(Buff.cursor.x, Buff.cursor.y - 1); break;        
+        case 'q': return;
       }
     }
   }
@@ -278,6 +263,7 @@ int main(int arg, char **file) {
   create_window();
   enable_raw_mode();
   draw_editor();
+  write(STDOUT_FILENO, "\x1b[H", 3);
   editor_key_press(Buff.mode);
 
  
