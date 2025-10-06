@@ -62,6 +62,7 @@ typedef struct Line {
 typedef struct Cursor {
   int x;
   int y;
+  int desired_x;
 } Cursor;
 
 // Window that keep sizes of terminal and screen that include text from doucument that can be placed in screen
@@ -201,7 +202,8 @@ void draw_editor() {
   }
   
   // Showing cursor
-  dprintf(STDOUT_FILENO, "\033[%d;%dH", Buff.cursor.y + 1, Buff.cursor.x + 1);
+  int screen_y = Buff.cursor.y - Win.scroll_y + 1;
+  dprintf(STDOUT_FILENO, "\033[%d;%dH", screen_y, Buff.cursor.x + 1);
   ansi_emit(ANSI_CURSOR_SHOW);
 }
 
@@ -222,11 +224,11 @@ void move_cursor(int x, int y) {
   Buff.cursor.y = doc_y;
 
   // Handle scrolling
-  if (Buff.cursor.y >= Win.scroll_y + Win.height - 1) {
-    Win.scroll_y = Buff.cursor.y - Win.height;
+  if (Buff.cursor.y > Win.height + Win.scroll_y - 2 && Buff.cursor.y < Buff.document_size - 1) {
+    Win.scroll_y++;
   }
-  if (Buff.cursor.y < Win.scroll_y) {
-    Win.scroll_y = Buff.cursor.y;
+  if (Win.scroll_y > 0 && Buff.cursor.y < Win.scroll_y) {
+    Win.scroll_y--;
   }
 
   draw_editor();
@@ -256,6 +258,7 @@ void editor_key_press(int mode) {
 void init_editor() {
   Buff.cursor.x = 0;
   Buff.cursor.y = 0;
+  Buff.cursor.desired_x = 0;
   Buff.mode = VIEWING;
   Buff.document_capacity = 64;
   Buff.document_size = 0;
