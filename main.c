@@ -233,6 +233,22 @@ void move_cursor(int x, int y) {
 
   draw_editor();
 }
+void move_cursor_horizontaly(int direction) {
+  if (Buff.document_size <= 0) return;  
+  
+  int doc_x = clamp(Buff.cursor.x + direction, 0, Buff.document_size - 1);
+  Buff.cursor.desired_x = doc_x;
+  Buff.cursor.x = doc_x;
+
+  draw_editor();
+}
+
+void move_cursor_verticaly(int direction) {
+  if(Buff.document_size <= 0) return;  
+  
+  int doc_y = clamp(Buff.cursor.x + direction, 0, Buff.document_size - 1);
+
+}
 
 void write_char(char c) {
 
