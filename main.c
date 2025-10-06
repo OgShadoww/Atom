@@ -19,8 +19,10 @@
 enum AnsiCode {
   ANSI_EXIT,
   ANSI_CLEAR,
+  ANSI_CLEAR_SCROLL,
   ANSI_CLEAR_LINE,
   ANSI_CURSOR_HIDE,
+  ANSI_CURSOR_HOME,
   ANSI_CURSOR_SHOW,
   ANSI_CURSOR_LEFT,
   ANSI_CURSOR_RIGHT,
@@ -32,8 +34,10 @@ enum AnsiCode {
 const char *ansi_codes[] = {  
   [ANSI_EXIT] = "\b \b",
   [ANSI_CLEAR] = "\033[2J",
+  [ANSI_CLEAR_SCROLL] = "\033[3J",
   [ANSI_CLEAR_LINE] = "\033[2K",
   [ANSI_CURSOR_HIDE] = "\033[?25l",
+  [ANSI_CURSOR_HOME] = "\033[1;1H", 
   [ANSI_CURSOR_SHOW] = "\033[?25h",
   [ANSI_CURSOR_LEFT] = "\033[1D",
   [ANSI_CURSOR_RIGHT] = "\033[1C",
@@ -178,21 +182,27 @@ void create_window() {
 }
 
 void draw_editor() {
+  ansi_emit(ANSI_CURSOR_HIDE);
   ansi_emit(ANSI_CLEAR);
-  for(int i = Win.scroll_y; i < Win.height + Win.scroll_y - 1; i++) {
-    write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
-  }
-}
+  ansi_emit(ANSI_CLEAR_SCROLL);
+  ansi_emit(ANSI_CURSOR_HOME);
 
-void scroll_window(int a) {
-  if(a > 0) {
-    Win.scroll_y++;
-    draw_editor();  
+  if(Buff.document_size < Win.height) {
+    for(int i = 0; i < Buff.document_size; i++) {
+      write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size); 
+    } 
   }
-  if(a < 0) {
-    Win.scroll_y--;
-    draw_editor();
+  else {
+    for(int i = Win.scroll_y; i < Win.scroll_y + Win.height - 1; i++) {
+      if(i < Buff.document_size) {
+        write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
+      }
+    }
   }
+  
+  // Showing cursor
+  dprintf(STDOUT_FILENO, "\033[%d;%dH", Buff.cursor.y + 1, Buff.cursor.x + 1);
+  ansi_emit(ANSI_CURSOR_SHOW);
 }
 
 void move_cursor(int x, int y) {
@@ -204,11 +214,21 @@ void move_cursor(int x, int y) {
     return;
   }
 
-  int doc_x = clamp(x, 0, Buff.document[x].size - 1);
+  // Clamp to the document size
+  int doc_x = clamp(x, 0, Buff.document[y].size - 1);
   int doc_y = clamp(y, 0, Buff.document_size - 1);
 
   Buff.cursor.x = doc_x;
-  Buff.cursor.y = doc_y; 
+  Buff.cursor.y = doc_y;
+
+  // Handle scrolling
+  if (Buff.cursor.y >= Win.scroll_y + Win.height - 1) {
+    Win.scroll_y = Buff.cursor.y - Win.height;
+  }
+  if (Buff.cursor.y < Win.scroll_y) {
+    Win.scroll_y = Buff.cursor.y;
+  }
+
   draw_editor();
 }
 
@@ -263,7 +283,7 @@ int main(int arg, char **file) {
   create_window();
   enable_raw_mode();
   draw_editor();
-  write(STDOUT_FILENO, "\x1b[H", 3);
+  //write(STDOUT_FILENO, "\x1b[H", 3);
   editor_key_press(Buff.mode);
 
  
