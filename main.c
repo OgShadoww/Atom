@@ -207,6 +207,12 @@ void draw_editor() {
   ansi_emit(ANSI_CURSOR_SHOW);
 }
 
+
+void enter_viewing_mode() {
+  
+}
+
+// Cursor movements
 void move_cursor_horizontaly(int direction) {
   if (Buff.document_size <= 0) return;  
   
@@ -236,7 +242,27 @@ void move_cursor_verticaly(int direction) {
   draw_editor();
 }
 
+void enter_inserting_mode() {
+  
+}
+
 void write_char(char c) {
+  write(STDIN_FILENO, &c, sizeof(c));
+}
+
+void enter_command_mode() {
+  Buff.mode = COMMAND_MODE;
+  move_cursor_verticaly(Buff.document_size);
+  printf(":");
+  //write_char(':');
+  draw_editor(); 
+}
+
+void process_command_mode() {
+
+}
+
+void exit_command_mode() {
 
 }
 
@@ -250,6 +276,8 @@ void editor_key_press(int mode) {
         case 'l': move_cursor_horizontaly(1); break;
         case 'j': move_cursor_verticaly(1); break;
         case 'k': move_cursor_verticaly(-1); break;        
+        case 'i': enter_inserting_mode(); break;
+        case ':': enter_command_mode(); break;
         case 'q': return;
       }
     }

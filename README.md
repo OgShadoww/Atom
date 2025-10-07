@@ -1,4 +1,4 @@
-# Atom – terminal text editor
+# Atom – terminal text editor (2 Weeks left)
 
 Atom is a hobby text editor implemented in C for Unix-like terminals. It draws
 inspiration from modal editors such as Vim and focuses on providing a compact
@@ -9,6 +9,7 @@ standard POSIX library.
     1. Finish viewing mode:   
         - Saving your x cordinate even after zero lines (Done)   
         - Fully working scrolling in y  (Done)   
+        - Scale of terminal sizes to the maximum width of the line or creating x scroll or smart wrap system
     2. Creating line number in bottom and name of the file   
     3. Create main menu if run atom without file path   
     4. Inserting mode   
