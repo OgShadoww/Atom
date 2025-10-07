@@ -207,32 +207,6 @@ void draw_editor() {
   ansi_emit(ANSI_CURSOR_SHOW);
 }
 
-void move_cursor(int x, int y) {
-  if (Buff.document_size <= 0) {
-    Buff.cursor.x = 0;
-    Buff.cursor.y = 0;
-    Win.scroll_y = 0;
-    draw_editor();
-    return;
-  }
-
-  // Clamp to the document size
-  int doc_x = clamp(x, 0, Buff.document[y].size - 1);
-  int doc_y = clamp(y, 0, Buff.document_size - 1);
-
-  Buff.cursor.x = doc_x;
-  Buff.cursor.y = doc_y;
-
-  // Handle scrolling
-  if (Buff.cursor.y > Win.height + Win.scroll_y - 2 && Buff.cursor.y < Buff.document_size - 1) {
-    Win.scroll_y++;
-  }
-  if (Win.scroll_y > 0 && Buff.cursor.y < Win.scroll_y) {
-    Win.scroll_y--;
-  }
-
-  draw_editor();
-}
 void move_cursor_horizontaly(int direction) {
   if (Buff.document_size <= 0) return;  
   
@@ -246,8 +220,20 @@ void move_cursor_horizontaly(int direction) {
 void move_cursor_verticaly(int direction) {
   if(Buff.document_size <= 0) return;  
   
-  int doc_y = clamp(Buff.cursor.x + direction, 0, Buff.document_size - 1);
+  int doc_y = clamp(Buff.cursor.y + direction, 0, Buff.document_size - 1);
+  int doc_x = clamp(Buff.cursor.desired_x, 0, Buff.document[doc_y].size);
+  Buff.cursor.y = doc_y;
+  Buff.cursor.x = doc_x;
 
+  // Handle scrolling
+  if (Buff.cursor.y > Win.height + Win.scroll_y - 2 && Buff.cursor.y < Buff.document_size - 1) {
+    Win.scroll_y++;
+  }
+  if (Win.scroll_y > 0 && Buff.cursor.y < Win.scroll_y) {
+    Win.scroll_y--;
+  }
+
+  draw_editor();
 }
 
 void write_char(char c) {
@@ -260,10 +246,10 @@ void editor_key_press(int mode) {
     while(1) {
       read(STDIN_FILENO, &c, sizeof(c)); 
       switch (c) {
-        case 'h': move_cursor(Buff.cursor.x - 1, Buff.cursor.y); break;
-        case 'l': move_cursor(Buff.cursor.x + 1, Buff.cursor.y); break;
-        case 'j': move_cursor(Buff.cursor.x, Buff.cursor.y + 1); break;
-        case 'k': move_cursor(Buff.cursor.x, Buff.cursor.y - 1); break;        
+        case 'h': move_cursor_horizontaly(-1); break;
+        case 'l': move_cursor_horizontaly(1); break;
+        case 'j': move_cursor_verticaly(1); break;
+        case 'k': move_cursor_verticaly(-1); break;        
         case 'q': return;
       }
     }
