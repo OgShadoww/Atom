@@ -216,7 +216,7 @@ void enter_viewing_mode() {
 void move_cursor_horizontaly(int direction) {
   if (Buff.document_size <= 0) return;  
   
-  int doc_x = clamp(Buff.cursor.x + direction, 0, Buff.document_size - 1);
+  int doc_x = clamp(Buff.cursor.x + direction, 0, Buff.document[Buff.cursor.y].size - 1);
   Buff.cursor.desired_x = doc_x;
   Buff.cursor.x = doc_x;
 
@@ -227,7 +227,7 @@ void move_cursor_verticaly(int direction) {
   if(Buff.document_size <= 0) return;  
   
   int doc_y = clamp(Buff.cursor.y + direction, 0, Buff.document_size - 1);
-  int doc_x = clamp(Buff.cursor.desired_x, 0, Buff.document[doc_y].size);
+  int doc_x = clamp(Buff.cursor.desired_x, 0, Buff.document[doc_y].size - 1);
   Buff.cursor.y = doc_y;
   Buff.cursor.x = doc_x;
 
@@ -252,8 +252,8 @@ void write_char(char c) {
 
 void enter_command_mode() {
   Buff.mode = COMMAND_MODE;
-  move_cursor_verticaly(Buff.document_size);
-  printf(":");
+  move_cursor_verticaly(Buff.document_size - 1);
+  write(STDIN_FILENO, ":", 2);
   //write_char(':');
   draw_editor(); 
 }
