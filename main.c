@@ -11,8 +11,8 @@
 // ---------------
 
 // Edtior modes
-#define INSERTING 0
-#define VIEWING 1
+#define INSERTING_MODE 0
+#define VIEWING_MODE 1
 #define COMMAND_MODE 2
 
 // Ansi codes for control terminal
@@ -204,6 +204,7 @@ void draw_editor() {
   // Showing cursor
   int screen_y = Buff.cursor.y - Win.scroll_y + 1;
   dprintf(STDOUT_FILENO, "\033[%d;%dH", screen_y, Buff.cursor.x + 1);
+  printf("\033[?7l");
   ansi_emit(ANSI_CURSOR_SHOW);
 }
 
@@ -242,44 +243,63 @@ void move_cursor_verticaly(int direction) {
   draw_editor();
 }
 
-void enter_inserting_mode() {
-  
-}
-
-void write_char(char c) {
-  write(STDIN_FILENO, &c, sizeof(c));
+void show_command_mode() {
+  dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height);
+  printf("\033[2K");
+  printf(":");
+  fflush(stdout);
 }
 
 void enter_command_mode() {
   Buff.mode = COMMAND_MODE;
-  move_cursor_verticaly(Buff.document_size - 1);
-  write(STDIN_FILENO, ":", 2);
-  //write_char(':');
-  draw_editor(); 
+  show_command_mode();
+  
 }
 
-void process_command_mode() {
+// Functions for handling the input in different modes
+void handle_command_input(char c) {
+  switch (c) {
+    case 'q': exit(0); break;
+  }
+}
+
+void handle_inserting_input(char c) {
 
 }
 
-void exit_command_mode() {
-
+void handle_viewing_input(char c) {
+  switch (c) {
+    case 'h': move_cursor_horizontaly(-1); break;
+    case 'l': move_cursor_horizontaly(1); break;
+    case 'j': move_cursor_verticaly(1); break;
+    case 'k': move_cursor_verticaly(-1); break;
+    case ':': 
+      Buff.mode = COMMAND_MODE;
+      enter_command_mode();
+      break;
+    case 'i': 
+      //Buff.mode = INSERTING;
+      //enter_insert_mode();
+      break;
+    case 'q': exit(0); break;
+  }
 }
 
-void editor_key_press(int mode) {
+void editor_key_press() {
   char c;
-  if(mode == VIEWING) {
-    while(1) {
-      read(STDIN_FILENO, &c, sizeof(c)); 
-      switch (c) {
-        case 'h': move_cursor_horizontaly(-1); break;
-        case 'l': move_cursor_horizontaly(1); break;
-        case 'j': move_cursor_verticaly(1); break;
-        case 'k': move_cursor_verticaly(-1); break;        
-        case 'i': enter_inserting_mode(); break;
-        case ':': enter_command_mode(); break;
-        case 'q': return;
-      }
+  while(1) {
+    read(STDIN_FILENO, &c, sizeof(c)); 
+    
+    switch (Buff.mode) {
+      case VIEWING_MODE:
+        handle_viewing_input(c);
+        break;
+      case INSERTING_MODE:
+        handle_inserting_input(c);
+        break;
+      case COMMAND_MODE:
+        handle_command_input(c);
+        break;
     }
   }
 }
@@ -289,7 +309,7 @@ void init_editor() {
   Buff.cursor.x = 0;
   Buff.cursor.y = 0;
   Buff.cursor.desired_x = 0;
-  Buff.mode = VIEWING;
+  Buff.mode = VIEWING_MODE;
   Buff.document_capacity = 64;
   Buff.document_size = 0;
   Buff.document = malloc(sizeof(Line) * Buff.document_capacity);
@@ -316,8 +336,7 @@ int main(int arg, char **file) {
   create_window();
   enable_raw_mode();
   draw_editor();
-  //write(STDOUT_FILENO, "\x1b[H", 3);
-  editor_key_press(Buff.mode);
+  editor_key_press();
 
  
   free_editor();
