@@ -99,6 +99,7 @@ void handle_inserting_input(char c);
 void enter_command_mode();
 void process_command_input(char *command);
 void handle_command_input(char c);
+void exit_command_mode();
 void enter_viewing_mode();
 void handle_viewing_input(char c);
 void editor_key_press();
@@ -312,7 +313,9 @@ void enter_command_mode() {
 }
 
 void process_command_input(char *command) {
-
+  if(strcmp(command, "q") == 1) {
+    exit(0);
+  }
 }
 
 void handle_command_input(char c) {
@@ -320,11 +323,11 @@ void handle_command_input(char c) {
   static int cmd_pos = 0;
 
   switch (c) {
-    case '\r':
+    case 10:
       command_buffer[cmd_pos] = '\0';
       cmd_pos = 0;
       process_command_input(command_buffer);
-      enter_viewing_mode(); 
+      //enter_viewing_mode(); 
     case '\033':
       cmd_pos = 0;
       enter_viewing_mode();
@@ -346,6 +349,10 @@ void handle_command_input(char c) {
       }
       break;
   }
+}
+
+void exit_command_mode() {
+
 }
 
 // Viewing mode
