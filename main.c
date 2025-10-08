@@ -96,6 +96,19 @@ static int clamp(int v, int lo, int hi) {
   return v;
 }
 
+// Functions to work with terminal text modes
+void disable_raw_mode() {
+  tcsetattr(STDIN_FILENO, TCSAFLUSH, &OriginalTermios);
+}
+
+void enable_raw_mode() {
+  tcgetattr(STDIN_FILENO, &OriginalTermios);
+  atexit(disable_raw_mode);
+  struct termios raw = OriginalTermios;
+  raw.c_lflag &= ~(ECHO | ICANON | ISIG);
+  tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+}
+
 // ----------
 // MAIN CODE 
 // ----------
@@ -244,6 +257,16 @@ void move_cursor_verticaly(int direction) {
   draw_editor();
 }
 
+// Inserting mode
+void enter_inserting_mode() {
+
+}
+
+void handle_inserting_input(char c) {
+
+}
+
+// Command mode
 void show_command_mode() {
   dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height);
   printf("\033[2K");
@@ -257,14 +280,18 @@ void enter_command_mode() {
   
 }
 
-// Functions for handling the input in different modes
+void process_command_input() {
+
+}
+
 void handle_command_input(char c) {
   switch (c) {
     case 'q': exit(0); break;
   }
 }
 
-void handle_inserting_input(char c) {
+// Viewing mode
+void enter_viewing_mode() {
 
 }
 
