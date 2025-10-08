@@ -15,6 +15,7 @@ standard POSIX library.
     4. Inserting mode   
     5. Highting of syntax   
     6. Atom . functoin   
+    7. Command mode basics (Done)
 
 ---
 

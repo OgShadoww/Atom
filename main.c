@@ -27,7 +27,8 @@ enum AnsiCode {
   ANSI_CURSOR_LEFT,
   ANSI_CURSOR_RIGHT,
   ANSI_CURSOR_TOP,
-  ANSI_CURSOR_DOWN
+  ANSI_CURSOR_DOWN,
+  ANSI_ERASE_CHARACTER
 };
 
 //Array with ansi codes
@@ -43,6 +44,7 @@ const char *ansi_codes[] = {
   [ANSI_CURSOR_RIGHT] = "\033[1C",
   [ANSI_CURSOR_TOP] = "\033[1A",
   [ANSI_CURSOR_DOWN] = "\033[1B",
+  [ANSI_ERASE_CHARACTER] = "\b \b"
 };
 
 struct termios OriginalTermios;
@@ -80,6 +82,27 @@ typedef struct Buffer {
 Buffer Buff;
 Window Win;
 
+// ---------------
+// FUNCTIONS PROTOTYPES
+// ---------------
+
+void ansi_emit(enum AnsiCode code);
+static int clamp(int v, int lo, int hi);
+void disable_raw_mode();
+void enable_raw_mode();
+void create_window();
+void draw_editor();
+void move_cursor_horizontaly(int direction);
+void move_cursor_verticaly(int direction);
+void enter_inserting_mode();
+void handle_inserting_input(char c);
+void enter_command_mode();
+void process_command_input(char *command);
+void handle_command_input(char c);
+void enter_viewing_mode();
+void handle_viewing_input(char c);
+void editor_key_press();
+
 // ----------
 // HELPERS
 // ----------
@@ -107,6 +130,14 @@ void enable_raw_mode() {
   struct termios raw = OriginalTermios;
   raw.c_lflag &= ~(ECHO | ICANON | ISIG);
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+}
+
+// ----------
+// COMMAND FUNCTIONS
+// ----------
+
+void cmd_save() {
+  
 }
 
 // ----------
@@ -280,19 +311,46 @@ void enter_command_mode() {
   
 }
 
-void process_command_input() {
+void process_command_input(char *command) {
 
 }
 
 void handle_command_input(char c) {
+  static char command_buffer[128];
+  static int cmd_pos = 0;
+
   switch (c) {
-    case 'q': exit(0); break;
+    case '\r':
+      command_buffer[cmd_pos] = '\0';
+      cmd_pos = 0;
+      process_command_input(command_buffer);
+      enter_viewing_mode(); 
+    case '\033':
+      cmd_pos = 0;
+      enter_viewing_mode();
+      break;
+    case 127:
+      if(cmd_pos > 0) {
+        cmd_pos--;
+        ansi_emit(ANSI_ERASE_CHARACTER);
+      }
+      else {
+        break;
+      }
+      break;
+    default: 
+      if(cmd_pos < 128) {
+        command_buffer[cmd_pos] = c;
+        cmd_pos++;
+        dprintf(STDIN_FILENO, "%c", c);
+      }
+      break;
   }
 }
 
 // Viewing mode
-void enter_viewing_mode() {
-
+void enter_viewing_mode() { 
+  Buff.mode = VIEWING_MODE;
 }
 
 void handle_viewing_input(char c) {
@@ -302,12 +360,10 @@ void handle_viewing_input(char c) {
     case 'j': move_cursor_verticaly(1); break;
     case 'k': move_cursor_verticaly(-1); break;
     case ':': 
-      Buff.mode = COMMAND_MODE;
       enter_command_mode();
       break;
     case 'i': 
-      //Buff.mode = INSERTING;
-      //enter_insert_mode();
+      enter_inserting_mode();
       break;
     case 'q': exit(0); break;
   }
@@ -317,7 +373,7 @@ void editor_key_press() {
   char c;
   while(1) {
     read(STDIN_FILENO, &c, sizeof(c)); 
-    
+   
     switch (Buff.mode) {
       case VIEWING_MODE:
         handle_viewing_input(c);
