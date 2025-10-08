@@ -45,11 +45,6 @@ const char *ansi_codes[] = {
   [ANSI_CURSOR_DOWN] = "\033[1B",
 };
 
-// Fucntion to emit ansi codes and run it
-void ansi_emit(enum AnsiCode code) {
-  write(STDOUT_FILENO, ansi_codes[code], strlen(ansi_codes[code]));
-}
-
 struct termios OriginalTermios;
 
 // Document line
@@ -89,7 +84,13 @@ Window Win;
 // HELPERS
 // ----------
 
+// Fucntion to emit ansi codes and run it
+void ansi_emit(enum AnsiCode code) {
+  write(STDOUT_FILENO, ansi_codes[code], strlen(ansi_codes[code]));
+}
+
 static int clamp(int v, int lo, int hi) {
+  if(hi < lo) return lo;
   if(v > hi) return hi;
   if(v < lo) return lo;
   return v;
@@ -99,6 +100,26 @@ static int clamp(int v, int lo, int hi) {
 // MAIN CODE 
 // ----------
 
+// Initialization of Buffer 
+void init_editor() {
+  Buff.cursor.x = 0;
+  Buff.cursor.y = 0;
+  Buff.cursor.desired_x = 0;
+  Buff.mode = VIEWING_MODE;
+  Buff.document_capacity = 64;
+  Buff.document_size = 0;
+  Buff.document = malloc(sizeof(Line) * Buff.document_capacity);
+  if(!Buff.document) {
+    perror("Malloc failled");
+    exit(1);
+  }
+
+  for(int i = 0; i < Buff.document_capacity; i++) {
+    Buff.document[i].line = NULL;
+    Buff.document[i].size = 0;
+  }
+}
+
 void free_editor() {
   for(int i = 0; i < Buff.document_size; i++) {
     if(Buff.document[i].line != NULL) {
@@ -107,7 +128,6 @@ void free_editor() {
   }
   free(Buff.document);
 }
-
 
 void ensure_document_capacity() {
   if(Buff.document_size >= Buff.document_capacity) {
@@ -159,20 +179,6 @@ void open_editor(char *filen) {
   fclose(file);
 }
 
-// Functions to work with terminal text modes
-void disable_raw_mode() {
-  tcsetattr(STDIN_FILENO, TCSAFLUSH, &OriginalTermios);
-}
-
-void enable_raw_mode() {
-  tcgetattr(STDIN_FILENO, &OriginalTermios);
-  atexit(disable_raw_mode);
-
-  struct termios raw = OriginalTermios;
-  raw.c_lflag &= ~(ECHO | ICANON | ISIG);
-  tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
-}
-
 // Set files in Window structure
 void create_window() {
   struct winsize w;
@@ -208,12 +214,7 @@ void draw_editor() {
   ansi_emit(ANSI_CURSOR_SHOW);
 }
 
-
-void enter_viewing_mode() {
-  
-}
-
-// Cursor movements
+// Functions for cursor movements
 void move_cursor_horizontaly(int direction) {
   if (Buff.document_size <= 0) return;  
   
@@ -301,26 +302,6 @@ void editor_key_press() {
         handle_command_input(c);
         break;
     }
-  }
-}
-
-// Initialization of Buffer 
-void init_editor() {
-  Buff.cursor.x = 0;
-  Buff.cursor.y = 0;
-  Buff.cursor.desired_x = 0;
-  Buff.mode = VIEWING_MODE;
-  Buff.document_capacity = 64;
-  Buff.document_size = 0;
-  Buff.document = malloc(sizeof(Line) * Buff.document_capacity);
-  if(!Buff.document) {
-    perror("Malloc failled");
-    exit(1);
-  }
-
-  for(int i = 0; i < Buff.document_capacity; i++) {
-    Buff.document[i].line = NULL;
-    Buff.document[i].size = 0;
   }
 }
 
