@@ -164,7 +164,7 @@ void init_editor() {
   Buff.cursor.y = 0;
   Buff.cursor.desired_x = 0;
   Buff.mode = VIEWING_MODE;
-  Buff.document_capacity = 64;
+  Buff.document_capacity = 512;
   Buff.document_size = 0;
   Buff.file_name = NULL;
   Buff.document = malloc(sizeof(Line) * Buff.document_capacity);
@@ -254,6 +254,7 @@ void draw_editor() {
   ansi_emit(ANSI_CLEAR_SCROLL);
   ansi_emit(ANSI_CURSOR_HOME);
 
+  // Render
   if(Buff.document_size < Win.height) {
     for(int i = 0; i < Buff.document_size; i++) {
       write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size); 
@@ -261,7 +262,7 @@ void draw_editor() {
   }
   else {
     for(int i = Win.scroll_y; i < Win.scroll_y + Win.height - 1; i++) {
-      if(i < Buff.document_size) {
+      if(i < Buff.document_size - 1) {
         write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
       }
     }
@@ -270,7 +271,7 @@ void draw_editor() {
   // Showing cursor
   int screen_y = Buff.cursor.y - Win.scroll_y + 1;
   dprintf(STDOUT_FILENO, "\033[%d;%dH", screen_y, Buff.cursor.x + 1);
-  printf("\033[?7l");
+  write(STDOUT_FILENO, "\033[?7h", 5);
   ansi_emit(ANSI_CURSOR_SHOW);
 }
 
@@ -345,7 +346,6 @@ void handle_command_input(char c) {
       command_buffer[cmd_pos] = '\0';
       cmd_pos = 0;
       process_command_input(command_buffer);
-      //enter_viewing_mode(); 
     case '\033':
       cmd_pos = 0;
       enter_viewing_mode();
@@ -416,13 +416,11 @@ void editor_key_press() {
   }
 }
 
-
 int main(int arg, char **file) {
   if (arg < 2) {
     fprintf(stderr, "Usage: %s <filename>\n", file[0]);
     exit(1);
   }
-  char *filename = file[1];
 
   init_editor();
   open_editor(file[1]);
@@ -430,7 +428,6 @@ int main(int arg, char **file) {
   enable_raw_mode();
   draw_editor();
   editor_key_press();
-
  
   free_editor();
   disable_raw_mode();
