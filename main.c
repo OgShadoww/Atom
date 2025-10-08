@@ -76,6 +76,7 @@ typedef struct Buffer {
   int document_size;
   int document_capacity;
   Cursor cursor;
+  char *file_name;
 } Buffer;
 
 // Initialization
@@ -103,6 +104,7 @@ void exit_command_mode();
 void enter_viewing_mode();
 void handle_viewing_input(char c);
 void editor_key_press();
+void free_editor();
 
 // ----------
 // HELPERS
@@ -137,8 +139,19 @@ void enable_raw_mode() {
 // COMMAND FUNCTIONS
 // ----------
 
-void cmd_save() {
-  
+void cmd_save_file() {
+  FILE *file = fopen(Buff.file_name, "w");
+  for(int i = 0; i < Buff.document_size; i++) {
+    fputs(Buff.document[i].line, file);
+  }
+
+  fclose(file);
+  exit(0);
+}
+
+void cmd_quit() {
+  free_editor();
+  exit(0);
 }
 
 // ----------
@@ -153,6 +166,7 @@ void init_editor() {
   Buff.mode = VIEWING_MODE;
   Buff.document_capacity = 64;
   Buff.document_size = 0;
+  Buff.file_name = NULL;
   Buff.document = malloc(sizeof(Line) * Buff.document_capacity);
   if(!Buff.document) {
     perror("Malloc failled");
@@ -221,6 +235,7 @@ void open_editor(char *filen) {
     Buff.document_size++;
   }
 
+  Buff.file_name = filen;
   fclose(file);
 }
 
@@ -313,8 +328,11 @@ void enter_command_mode() {
 }
 
 void process_command_input(char *command) {
-  if(strcmp(command, "q") == 1) {
-    exit(0);
+  if(strcmp(command, "q") == 0) {
+    cmd_quit();
+  }
+  if(strcmp(command, "w") == 0) {
+    cmd_save_file();
   }
 }
 
@@ -338,6 +356,7 @@ void handle_command_input(char c) {
         ansi_emit(ANSI_ERASE_CHARACTER);
       }
       else {
+        exit_command_mode();
         break;
       }
       break;
@@ -352,7 +371,10 @@ void handle_command_input(char c) {
 }
 
 void exit_command_mode() {
-
+  ansi_emit(ANSI_ERASE_CHARACTER);
+  int screen_y = Buff.cursor.y - Win.scroll_y + 1;
+  dprintf(STDOUT_FILENO, "\033[%d;%dH", screen_y, Buff.cursor.x + 1); 
+  Buff.mode = VIEWING_MODE;
 }
 
 // Viewing mode
@@ -372,7 +394,6 @@ void handle_viewing_input(char c) {
     case 'i': 
       enter_inserting_mode();
       break;
-    case 'q': exit(0); break;
   }
 }
 
@@ -400,7 +421,8 @@ int main(int arg, char **file) {
   if (arg < 2) {
     fprintf(stderr, "Usage: %s <filename>\n", file[0]);
     exit(1);
-  }  
+  }
+  char *filename = file[1];
 
   init_editor();
   open_editor(file[1]);
