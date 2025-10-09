@@ -14,9 +14,7 @@ _start:
 
   int 0x80
 
-
-
-// Functions to work with terminal text modes
+// Functions to work with terminal text modes
 void disable_raw_mode() {
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &OriginalTermios);
 }

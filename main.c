@@ -91,12 +91,15 @@ void ansi_emit(enum AnsiCode code);
 static int clamp(int v, int lo, int hi);
 void disable_raw_mode();
 void enable_raw_mode();
+void append(char c);
 void create_window();
 void draw_editor();
 void move_cursor_horizontaly(int direction);
 void move_cursor_verticaly(int direction);
 void enter_inserting_mode();
 void handle_inserting_input(char c);
+void insert_char(char c);
+void exit_inserting_mode();
 void enter_command_mode();
 void process_command_input(char *command);
 void handle_command_input(char c);
@@ -133,6 +136,21 @@ void enable_raw_mode() {
   struct termios raw = OriginalTermios;
   raw.c_lflag &= ~(ECHO | ICANON | ISIG);
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+}
+
+void append(char c) {
+  int original_size = Buff.document[Buff.cursor.y].size;
+  int insert_pos = Buff.cursor.x;
+
+  Buff.document[Buff.cursor.y].size++; 
+  Buff.document[Buff.cursor.y].line = realloc(Buff.document[Buff.cursor.y].line, Buff.document[Buff.cursor.y].size + 1);
+  for(int i = original_size - 1; i >= insert_pos; i--) {
+    Buff.document[Buff.cursor.y].line[i + 1] = Buff.document[Buff.cursor.y].line[i];
+  }
+  
+  Buff.document[Buff.cursor.y].line[insert_pos] = c;
+  Buff.document[Buff.cursor.y].line[Buff.document[Buff.cursor.y].size] = '\0';
+  move_cursor_horizontaly(1);
 }
 
 // ----------
@@ -229,7 +247,7 @@ void open_editor(char *filen) {
   while (fgets(buffer, sizeof(buffer), file)) {  
     ensure_document_capacity();
     Buff.document[Buff.document_size].size = strlen(buffer);
-    Buff.document[Buff.document_size].line = malloc(Buff.document[Buff.document_size].size + 1);
+    Buff.document[Buff.document_size].line = malloc(Buff.document[Buff.document_size].size +1);
     if(!Buff.document[Buff.document_size].line) {
       perror("Malloc buffer line failled");
       fclose(file);
@@ -267,11 +285,10 @@ void draw_editor() {
   else {
     for(int i = Win.scroll_y; i < Win.scroll_y + Win.height - 2; i++) {
       if(i < Buff.document_size ) {
-        //dprintf(STDOUT_FILENO, "%d\t ", i+1);
         write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
       }
     }
-    dprintf(STDOUT_FILENO, "%s\t%d,%d", Buff.file_name, Buff.cursor.x, Buff.cursor.y);
+    dprintf(STDOUT_FILENO, "%s\t%d,%d", Buff.file_name, Buff.cursor.y, Buff.cursor.x);
   }
   
   // Showing cursor
@@ -313,11 +330,31 @@ void move_cursor_verticaly(int direction) {
 
 // Inserting mode
 void enter_inserting_mode() {
-
+  Buff.mode = INSERTING_MODE; 
 }
 
 void handle_inserting_input(char c) {
+  static char command_buffer;
+  static int cmd_pos = 0;
 
+  switch(c) {
+    case 27: 
+      exit_inserting_mode(); 
+      break;
+    case 127:
+      ansi_emit(ANSI_ERASE_CHARACTER);
+      break;
+    default: insert_char(c); break;
+  }
+}
+
+void insert_char(char c) {
+  append(c);
+  draw_editor();
+}
+
+void exit_inserting_mode() {
+  enter_viewing_mode();
 }
 
 // Command mode
