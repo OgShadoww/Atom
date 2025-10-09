@@ -16,6 +16,7 @@ standard POSIX library.
     5. Highting of syntax   
     6. Atom . functoin   
     7. Command mode basics (Done)
+    8. Fix the bug with last line printing (Done)
 
 ---
 

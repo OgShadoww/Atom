@@ -141,12 +141,16 @@ void enable_raw_mode() {
 
 void cmd_save_file() {
   FILE *file = fopen(Buff.file_name, "w");
+  if(!file) {
+    perror("error loading file for save");
+  }
   for(int i = 0; i < Buff.document_size; i++) {
     fputs(Buff.document[i].line, file);
   }
 
   fclose(file);
-  exit(0);
+
+  exit_command_mode();
 }
 
 void cmd_quit() {
@@ -261,8 +265,8 @@ void draw_editor() {
     } 
   }
   else {
-    for(int i = Win.scroll_y; i < Win.scroll_y + Win.height - 1; i++) {
-      if(i < Buff.document_size - 1) {
+    for(int i = Win.scroll_y; i < Win.scroll_y + Win.height - 2; i++) {
+      if(i < Buff.document_size ) {
         write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
       }
     }
@@ -295,7 +299,7 @@ void move_cursor_verticaly(int direction) {
   Buff.cursor.x = doc_x;
 
   // Handle scrolling
-  if (Buff.cursor.y > Win.height + Win.scroll_y - 2 && Buff.cursor.y < Buff.document_size - 1) {
+  if (Buff.cursor.y > Win.height + Win.scroll_y - 3 && Buff.cursor.y < Buff.document_size) {
     Win.scroll_y++;
   }
   if (Win.scroll_y > 0 && Buff.cursor.y < Win.scroll_y) {
@@ -373,7 +377,8 @@ void handle_command_input(char c) {
 void exit_command_mode() {
   ansi_emit(ANSI_ERASE_CHARACTER);
   int screen_y = Buff.cursor.y - Win.scroll_y + 1;
-  dprintf(STDOUT_FILENO, "\033[%d;%dH", screen_y, Buff.cursor.x + 1); 
+  dprintf(STDOUT_FILENO, "\033[%d;%dH", screen_y, Buff.cursor.x + 1);
+  //draw_editor();
   Buff.mode = VIEWING_MODE;
 }
 
