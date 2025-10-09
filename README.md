@@ -10,9 +10,9 @@ standard POSIX library.
         - Saving your x cordinate even after zero lines (Done)   
         - Fully working scrolling in y  (Done)   
         - Scale of terminal sizes to the maximum width of the line or creating x scroll or smart wrap system
-    2. Creating line number in bottom and name of the file   
+    2. Creating line number in bottom and name of the file (Done)   
     3. Create main menu if run atom without file path   
-    4. Inserting mode   
+    4. Inserting mode   (Half done)
     5. Highting of syntax   
     6. Atom . functoin   
     7. Command mode basics (Done)
