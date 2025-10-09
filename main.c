@@ -91,7 +91,7 @@ void ansi_emit(enum AnsiCode code);
 static int clamp(int v, int lo, int hi);
 void disable_raw_mode();
 void enable_raw_mode();
-void append(char c);
+void append_char(char c);
 void create_window();
 void draw_editor();
 void move_cursor_horizontaly(int direction);
@@ -138,7 +138,7 @@ void enable_raw_mode() {
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
 
-void append(char c) {
+void append_char(char c) {
   int original_size = Buff.document[Buff.cursor.y].size;
   int insert_pos = Buff.cursor.x;
 
@@ -149,8 +149,20 @@ void append(char c) {
   }
   
   Buff.document[Buff.cursor.y].line[insert_pos] = c;
-  Buff.document[Buff.cursor.y].line[Buff.document[Buff.cursor.y].size] = '\0';
   move_cursor_horizontaly(1);
+}
+
+void delete_char() {
+  int original_size = Buff.document[Buff.cursor.y].size;
+  int delete_pos = Buff.cursor.x - 1;
+ 
+  for(int i = delete_pos; i < original_size - 1; i++) {
+    Buff.document[Buff.cursor.y].line[i] = Buff.document[Buff.cursor.y].line[i+1];
+  }
+  Buff.document[Buff.cursor.y].size--;
+  Buff.document[Buff.cursor.y].line = realloc(Buff.document[Buff.cursor.y].line, Buff.document[Buff.cursor.y].size + 1);
+
+  move_cursor_horizontaly(-1);
 }
 
 // ----------
@@ -342,14 +354,15 @@ void handle_inserting_input(char c) {
       exit_inserting_mode(); 
       break;
     case 127:
-      ansi_emit(ANSI_ERASE_CHARACTER);
+      delete_char();
+      draw_editor();
       break;
     default: insert_char(c); break;
   }
 }
 
 void insert_char(char c) {
-  append(c);
+  append_char(c);
   draw_editor();
 }
 
