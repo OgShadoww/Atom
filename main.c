@@ -267,9 +267,11 @@ void draw_editor() {
   else {
     for(int i = Win.scroll_y; i < Win.scroll_y + Win.height - 2; i++) {
       if(i < Buff.document_size ) {
+        //dprintf(STDOUT_FILENO, "%d\t ", i+1);
         write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
       }
     }
+    dprintf(STDOUT_FILENO, "%s\t%d,%d", Buff.file_name, Buff.cursor.x, Buff.cursor.y);
   }
   
   // Showing cursor
