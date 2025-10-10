@@ -294,9 +294,6 @@ void draw_editor() {
     for(int i = 0; i < Buff.document_size; i++) {
       write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size); 
     } 
-    
-    move_cursor_horizontaly(Win.height - 1 - Buff.cursor.y);
-    dprintf(STDOUT_FILENO, "%s\t%d,%d", Buff.file_name, Buff.cursor.y, Buff.cursor.x);
   }
   else {
     for(int i = Win.scroll_y; i < Win.scroll_y + Win.height - 2; i++) {
@@ -305,8 +302,13 @@ void draw_editor() {
       }
     }
 
-    dprintf(STDOUT_FILENO, "%s\t%d,%d", Buff.file_name, Buff.cursor.y, Buff.cursor.x);
+    //dprintf(STDOUT_FILENO, "%s\t%d,%d", Buff.file_name, Buff.cursor.y, Buff.cursor.x);
   }
+
+  // Writing status bar
+  dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height);
+  write(STDOUT_FILENO, "\033[2K", 7);
+  dprintf(STDOUT_FILENO,"%s\t%d,%d", Buff.file_name, Buff.cursor.y + 1, Buff.cursor.x + 1);
   
   // Showing cursor
   int screen_y = Buff.cursor.y - Win.scroll_y + 1;
