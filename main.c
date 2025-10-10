@@ -92,6 +92,8 @@ static int clamp(int v, int lo, int hi);
 void disable_raw_mode();
 void enable_raw_mode();
 void append_char(char c);
+void cmd_save_file();
+void cmd_quit();
 void create_window();
 void draw_editor();
 void move_cursor_horizontaly(int direction);
@@ -292,6 +294,9 @@ void draw_editor() {
     for(int i = 0; i < Buff.document_size; i++) {
       write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size); 
     } 
+    
+    move_cursor_horizontaly(Win.height - 1 - Buff.cursor.y);
+    dprintf(STDOUT_FILENO, "%s\t%d,%d", Buff.file_name, Buff.cursor.y, Buff.cursor.x);
   }
   else {
     for(int i = Win.scroll_y; i < Win.scroll_y + Win.height - 2; i++) {
@@ -299,6 +304,7 @@ void draw_editor() {
         write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
       }
     }
+
     dprintf(STDOUT_FILENO, "%s\t%d,%d", Buff.file_name, Buff.cursor.y, Buff.cursor.x);
   }
   
@@ -377,8 +383,7 @@ void show_command_mode() {
 
 void enter_command_mode() {
   Buff.mode = COMMAND_MODE;
-  show_command_mode();
-  
+  show_command_mode(); 
 }
 
 void process_command_input(char *command) {
@@ -387,6 +392,10 @@ void process_command_input(char *command) {
   }
   if(strcmp(command, "w") == 0) {
     cmd_save_file();
+  }
+  if(strcmp(command, "wq") == 0) {
+    cmd_save_file();
+    cmd_quit();
   }
 }
 
@@ -399,6 +408,7 @@ void handle_command_input(char c) {
       command_buffer[cmd_pos] = '\0';
       cmd_pos = 0;
       process_command_input(command_buffer);
+      break;
     case '\033':
       cmd_pos = 0;
       enter_viewing_mode();
@@ -417,7 +427,7 @@ void handle_command_input(char c) {
       if(cmd_pos < 128) {
         command_buffer[cmd_pos] = c;
         cmd_pos++;
-        dprintf(STDIN_FILENO, "%c", c);
+        dprintf(STDOUT_FILENO, "%c", c);
       }
       break;
   }
