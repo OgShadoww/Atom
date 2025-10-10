@@ -98,7 +98,6 @@ void move_cursor_horizontaly(int direction);
 void move_cursor_verticaly(int direction);
 void enter_inserting_mode();
 void handle_inserting_input(char c);
-void insert_char(char c);
 void exit_inserting_mode();
 void enter_command_mode();
 void process_command_input(char *command);
@@ -357,13 +356,11 @@ void handle_inserting_input(char c) {
       delete_char();
       draw_editor();
       break;
-    default: insert_char(c); break;
+    default:
+      append_char(c); 
+      draw_editor();
+      break;
   }
-}
-
-void insert_char(char c) {
-  append_char(c);
-  draw_editor();
 }
 
 void exit_inserting_mode() {
