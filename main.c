@@ -306,8 +306,6 @@ void draw_editor() {
         write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
       }
     }
-
-    //dprintf(STDOUT_FILENO, "%s\t%d,%d", Buff.file_name, Buff.cursor.y, Buff.cursor.x);
   }
 
   // Writing status bar
@@ -458,7 +456,7 @@ void exit_command_mode() {
   ansi_emit(ANSI_ERASE_CHARACTER);
   int screen_y = Buff.cursor.y - Win.scroll_y + 1;
   dprintf(STDOUT_FILENO, "\033[%d;%dH", screen_y, Buff.cursor.x + 1);
-  //draw_editor();
+  draw_editor();
   Buff.mode = VIEWING_MODE;
 }
 

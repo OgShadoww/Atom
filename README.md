@@ -11,12 +11,13 @@ standard POSIX library.
         - Fully working scrolling in y  (Done)   
         - Scale of terminal sizes to the maximum width of the line or creating x scroll or smart wrap system
     2. Creating line number in bottom and name of the file (Done)   
-    3. Create main menu if run atom without file path   
+    3. Create main menu if run atom without file path   (Done)
     4. Inserting mode   (Half done)
     5. Highting of syntax   
     6. Atom . functoin   
     7. Command mode basics (Done)
     8. Fix the bug with last line printing (Done)
+    9. Colors functions 
 
 ---
 
