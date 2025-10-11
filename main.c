@@ -14,6 +14,7 @@
 #define INSERTING_MODE 0
 #define VIEWING_MODE 1
 #define COMMAND_MODE 2
+#define MENU_MODE 3
 
 // Ansi codes for control terminal
 enum AnsiCode {
@@ -87,6 +88,7 @@ Window Win;
 // FUNCTIONS PROTOTYPES
 // ---------------
 
+// main.c
 void ansi_emit(enum AnsiCode code);
 static int clamp(int v, int lo, int hi);
 void disable_raw_mode();
@@ -109,6 +111,9 @@ void enter_viewing_mode();
 void handle_viewing_input(char c);
 void editor_key_press();
 void free_editor();
+
+// menu.c 
+void start_menu(int win_h, int win_w);
 
 // ----------
 // HELPERS
@@ -389,6 +394,15 @@ void enter_command_mode() {
 }
 
 void process_command_input(char *command) {
+  if(Buff.mode == MENU_MODE) {
+    if(strcmp(command, "help") == 0) {
+
+    }
+    if(strcmp(command, "q") == 0) {
+      cmd_quit();
+    }
+  }
+
   if(strcmp(command, "q") == 0) {
     cmd_quit();
   }
@@ -398,6 +412,9 @@ void process_command_input(char *command) {
   if(strcmp(command, "wq") == 0) {
     cmd_save_file();
     cmd_quit();
+  }
+  else {
+    return;
   }
 }
 
@@ -412,6 +429,7 @@ void handle_command_input(char c) {
       process_command_input(command_buffer);
       break;
     case '\033':
+      if(Buff.mode == MENU_MODE) cmd_quit();
       cmd_pos = 0;
       enter_viewing_mode();
       break;
@@ -421,6 +439,7 @@ void handle_command_input(char c) {
         ansi_emit(ANSI_ERASE_CHARACTER);
       }
       else {
+        if(Buff.mode == MENU_MODE) break;
         exit_command_mode();
         break;
       }
@@ -478,19 +497,23 @@ void editor_key_press() {
       case COMMAND_MODE:
         handle_command_input(c);
         break;
+      case MENU_MODE:
+        handle_command_input(c);
     }
   }
 }
 
 int main(int arg, char **file) {
+  create_window();
   if (arg < 2) {
-    fprintf(stderr, "Usage: %s <filename>\n", file[0]);
-    exit(1);
+    start_menu(Win.height, Win.width);
+    enter_command_mode();
+    editor_key_press();
+    exit(0);
   }
 
   init_editor();
   open_editor(file[1]);
-  create_window();
   enable_raw_mode();
   draw_editor();
   editor_key_press();
