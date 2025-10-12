@@ -14,7 +14,6 @@
 #define INSERTING_MODE 0
 #define VIEWING_MODE 1
 #define COMMAND_MODE 2
-#define MENU_MODE 3
 
 // Ansi codes for control terminal
 enum AnsiCode {
@@ -73,6 +72,7 @@ typedef struct Window {
 // Buffer to keep all importante things in one place
 typedef struct Buffer {
   int mode;
+  int menu;
   Line *document;
   int document_size;
   int document_capacity;
@@ -310,7 +310,7 @@ void draw_editor() {
 
   // Writing status bar
   dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height);
-  write(STDOUT_FILENO, "\033[2K", 7);
+  write(STDOUT_FILENO, "\033[2K", 4);
   dprintf(STDOUT_FILENO,"%s\t%d,%d", Buff.file_name, Buff.cursor.y + 1, Buff.cursor.x + 1);
   
   // Showing cursor
@@ -392,15 +392,6 @@ void enter_command_mode() {
 }
 
 void process_command_input(char *command) {
-  if(Buff.mode == MENU_MODE) {
-    if(strcmp(command, "help") == 0) {
-
-    }
-    if(strcmp(command, "q") == 0) {
-      cmd_quit();
-    }
-  }
-
   if(strcmp(command, "q") == 0) {
     cmd_quit();
   }
@@ -427,7 +418,6 @@ void handle_command_input(char c) {
       process_command_input(command_buffer);
       break;
     case '\033':
-      if(Buff.mode == MENU_MODE) cmd_quit();
       cmd_pos = 0;
       enter_viewing_mode();
       break;
@@ -437,7 +427,6 @@ void handle_command_input(char c) {
         ansi_emit(ANSI_ERASE_CHARACTER);
       }
       else {
-        if(Buff.mode == MENU_MODE) break;
         exit_command_mode();
         break;
       }
@@ -495,18 +484,18 @@ void editor_key_press() {
       case COMMAND_MODE:
         handle_command_input(c);
         break;
-      case MENU_MODE:
-        handle_command_input(c);
     }
   }
 }
 
 int main(int arg, char **file) {
   create_window();
+  enable_raw_mode();
+
   if (arg < 2) {
-    start_menu(Win.height, Win.width);
-    enter_command_mode();
-    editor_key_press();
+    ansi_emit(ANSI_CLEAR);
+    start_menu(Win.height, Win.width); 
+    disable_raw_mode();
     exit(0);
   }
 
