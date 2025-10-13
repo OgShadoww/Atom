@@ -1,4 +1,4 @@
-# Atom – terminal text editor (2 Weeks left)
+# Atom – terminal text editor (1 Week left)
 
 Atom is a hobby text editor implemented in C for Unix-like terminals. It draws
 inspiration from modal editors such as Vim and focuses on providing a compact
