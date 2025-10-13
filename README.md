@@ -95,13 +95,6 @@ If you run the editor without any arguments, it will start with an empty buffer 
 | `:q` + `Enter`   | Command  | Quit the editor               |
 | `:wq` + `Enter`  | Command  | Save and quit the editor      |
 
-## 🧭 Roadmap
-
-- [ ] Undo/redo support
-- [ ] Syntax highlighting for C and other languages
-- [ ] Status bar with file information
-- [ ] Persistent configuration options
-- [ ] Menu/command palette for discoverability
 
 ## 🤝 Contributing
 
