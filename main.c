@@ -28,7 +28,19 @@ enum AnsiCode {
   ANSI_CURSOR_RIGHT,
   ANSI_CURSOR_TOP,
   ANSI_CURSOR_DOWN,
-  ANSI_ERASE_CHARACTER
+  ANSI_ERASE_CHARACTER,
+  COLOR_BLACK,
+  COLOR_WHITE,
+  COLOR_GREY,
+  COLOR_CYAN,
+  COLOR_VIOLET,
+  COLOR_RESET,
+  BG_BLACK,
+  BG_WHITE,
+  BG_GREY,
+  BG_CYAN,
+  BG_VIOLET,
+  BG_RESET,
 };
 
 //Array with ansi codes
@@ -44,7 +56,19 @@ const char *ansi_codes[] = {
   [ANSI_CURSOR_RIGHT] = "\033[1C",
   [ANSI_CURSOR_TOP] = "\033[1A",
   [ANSI_CURSOR_DOWN] = "\033[1B",
-  [ANSI_ERASE_CHARACTER] = "\b \b"
+  [ANSI_ERASE_CHARACTER] = "\b \b",
+  [COLOR_BLACK] = "\033[30m",
+  [COLOR_WHITE] = "\033[37m",
+  [COLOR_GREY] = "\033[90m",
+  [COLOR_CYAN] = "\033[36m",
+  [COLOR_VIOLET] = "\033[35m",
+  [COLOR_RESET] = "\033[0m",
+  [BG_BLACK] = "\033[40m",
+  [BG_WHITE] = "\033[47m",
+  [BG_GREY] = "\033[100m",
+  [BG_CYAN] = "\033[46m",
+  [BG_VIOLET] = "\033[45m",
+  [BG_RESET] = "\033[0m",
 };
 
 struct termios OriginalTermios;
@@ -124,6 +148,7 @@ void ansi_emit(enum AnsiCode code) {
   write(STDOUT_FILENO, ansi_codes[code], strlen(ansi_codes[code]));
 }
 
+// clamp numbers between two numbers
 static int clamp(int v, int lo, int hi) {
   if(hi < lo) return lo;
   if(v > hi) return hi;
@@ -144,6 +169,7 @@ void enable_raw_mode() {
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
 
+// Inserting and deletign functions
 void append_char(char c) {
   int original_size = Buff.document[Buff.cursor.y].size;
   int insert_pos = Buff.cursor.x;
@@ -169,6 +195,11 @@ void delete_char() {
   Buff.document[Buff.cursor.y].line = realloc(Buff.document[Buff.cursor.y].line, Buff.document[Buff.cursor.y].size + 1);
 
   move_cursor_horizontaly(-1);
+}
+
+// Colors manipulations
+void set_text_color(enum AnsiCode code) {
+  ansi_emit()
 }
 
 // ----------
