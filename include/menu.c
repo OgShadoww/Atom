@@ -19,7 +19,7 @@ void print_menu(int win_h, int win_w) {
     write(STDOUT_FILENO, "\033[2J", 4);
     write(STDOUT_FILENO, "\033[1;1H", 7);
     
-    int line_count = sizeof(welcome_lines) / sizeof(welcome_lines[0]);  // ← Auto-calculate size
+    int line_count = sizeof(welcome_lines) / sizeof(welcome_lines[0]);
     int max_len = 0;
     
     // Find longest line for perfect centering

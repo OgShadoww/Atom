@@ -29,18 +29,9 @@ enum AnsiCode {
   ANSI_CURSOR_TOP,
   ANSI_CURSOR_DOWN,
   ANSI_ERASE_CHARACTER,
-  COLOR_BLACK,
-  COLOR_WHITE,
-  COLOR_GREY,
-  COLOR_CYAN,
-  COLOR_VIOLET,
-  COLOR_RESET,
-  BG_BLACK,
-  BG_WHITE,
-  BG_GREY,
-  BG_CYAN,
-  BG_VIOLET,
-  BG_RESET,
+  ANSI_CURSOR_BLOCK,
+  ANSI_CURSOR_UNDERLINE,
+  ANSI_CURSOR_BAR,
 };
 
 //Array with ansi codes
@@ -57,18 +48,9 @@ const char *ansi_codes[] = {
   [ANSI_CURSOR_TOP] = "\033[1A",
   [ANSI_CURSOR_DOWN] = "\033[1B",
   [ANSI_ERASE_CHARACTER] = "\b \b",
-  [COLOR_BLACK] = "\033[30m",
-  [COLOR_WHITE] = "\033[37m",
-  [COLOR_GREY] = "\033[90m",
-  [COLOR_CYAN] = "\033[36m",
-  [COLOR_VIOLET] = "\033[35m",
-  [COLOR_RESET] = "\033[0m",
-  [BG_BLACK] = "\033[40m",
-  [BG_WHITE] = "\033[47m",
-  [BG_GREY] = "\033[100m",
-  [BG_CYAN] = "\033[46m",
-  [BG_VIOLET] = "\033[45m",
-  [BG_RESET] = "\033[0m",
+  [ANSI_CURSOR_BLOCK] = "\033[2 q",
+  [ANSI_CURSOR_UNDERLINE] = "\033[4 q",
+  [ANSI_CURSOR_BAR] = "\033[6 q",
 };
 
 struct termios OriginalTermios;
@@ -118,8 +100,13 @@ static int clamp(int v, int lo, int hi);
 void disable_raw_mode();
 void enable_raw_mode();
 void append_char(char c);
+void delete_char();
+void append_line();
+
 void cmd_save_file();
 void cmd_quit();
+
+void ensure_document_capacity();
 void create_window();
 void draw_editor();
 void move_cursor_horizontaly(int direction);
@@ -171,6 +158,16 @@ void enable_raw_mode() {
 
 // Inserting and deletign functions
 void append_char(char c) {
+  if(Buff.document_size == 0) {
+    ensure_document_capacity();
+    Buff.document_size = 1;
+    Buff.document[0].size = 0;
+    Buff.document[0].line = malloc(1);
+    Buff.document_size = 1;
+    Buff.cursor.x = 0;
+    Buff.cursor.y = 0;
+  }
+
   int original_size = Buff.document[Buff.cursor.y].size;
   int insert_pos = Buff.cursor.x;
 
@@ -184,10 +181,84 @@ void append_char(char c) {
   move_cursor_horizontaly(1);
 }
 
+void append_line() {
+  if (Buff.document_size == 0) {
+    ensure_document_capacity();
+    Buff.document[0].size = 0;
+    Buff.document[0].line = malloc(1);
+    Buff.document[0].line[0] = '\0';
+    Buff.document_size = 1;
+    Buff.cursor.x = 0;
+    Buff.cursor.y = 0;
+    draw_editor();
+    return;
+  }
+
+  int current_line = Buff.cursor.y;
+  int split_pos = Buff.cursor.x;
+  int current_size = Buff.document[current_line].size;
+
+  ensure_document_capacity();
+
+  for (int i = Buff.document_size; i > current_line + 1; i--) {
+    Buff.document[i] = Buff.document[i - 1];
+  }
+
+  int new_line_size = current_size - split_pos;
+  Buff.document[current_line + 1].size = new_line_size;
+  Buff.document[current_line + 1].line = malloc(new_line_size + 1);
+
+  if (new_line_size > 0) {
+    memcpy(Buff.document[current_line + 1].line,
+           &Buff.document[current_line].line[split_pos],
+           new_line_size);
+    Buff.document[current_line + 1].line[new_line_size] = '\0';
+  }
+  else {
+    Buff.document[current_line + 1].line[0] = '\0';
+  }
+
+  Buff.document[current_line].size = split_pos;
+  Buff.document[current_line].line = realloc(Buff.document[current_line].line, split_pos + 1);
+  Buff.document[current_line].line[split_pos] = '\0';
+
+  Buff.document_size++;
+  Buff.cursor.y++;
+  Buff.cursor.x = 0;
+  Buff.cursor.desired_x = 0;
+
+  draw_editor();
+  fflush(stdout);
+}
+
 void delete_char() {
   int original_size = Buff.document[Buff.cursor.y].size;
   int delete_pos = Buff.cursor.x - 1;
- 
+   if(delete_pos < 0) {
+    if(Buff.cursor.y > 0) {
+      int prev_line = Buff.cursor.y - 1;
+      int prev_size = Buff.document[prev_line].size;
+      int current_size = Buff.document[Buff.cursor.y].size;
+      
+      Buff.document[prev_line].line = realloc(Buff.document[prev_line].line, 
+                                             prev_size + current_size + 1);
+      strcpy(&Buff.document[prev_line].line[prev_size], Buff.document[Buff.cursor.y].line);
+      Buff.document[prev_line].size = prev_size + current_size;
+      
+      Buff.cursor.y = prev_line;
+      Buff.cursor.x = prev_size;
+      Buff.cursor.desired_x = prev_size;
+      
+      for (int i = Buff.cursor.y + 1; i < Buff.document_size; i++) {
+        Buff.document[i - 1] = Buff.document[i];
+      }
+      Buff.document_size--;
+    }
+
+    draw_editor();
+    return;
+  } 
+
   for(int i = delete_pos; i < original_size - 1; i++) {
     Buff.document[Buff.cursor.y].line[i] = Buff.document[Buff.cursor.y].line[i+1];
   }
@@ -195,11 +266,12 @@ void delete_char() {
   Buff.document[Buff.cursor.y].line = realloc(Buff.document[Buff.cursor.y].line, Buff.document[Buff.cursor.y].size + 1);
 
   move_cursor_horizontaly(-1);
+  draw_editor();
 }
 
 // Colors manipulations
 void set_text_color(enum AnsiCode code) {
-  ansi_emit()
+  //ansi_emit()
 }
 
 // ----------
@@ -383,7 +455,8 @@ void move_cursor_verticaly(int direction) {
 
 // Inserting mode
 void enter_inserting_mode() {
-  Buff.mode = INSERTING_MODE; 
+  Buff.mode = INSERTING_MODE;
+  ansi_emit(ANSI_CURSOR_BAR);
 }
 
 void handle_inserting_input(char c) {
@@ -397,6 +470,9 @@ void handle_inserting_input(char c) {
     case 127:
       delete_char();
       draw_editor();
+      break;
+    case 10:
+      append_line();
       break;
     default:
       append_char(c); 
@@ -412,14 +488,15 @@ void exit_inserting_mode() {
 // Command mode
 void show_command_mode() {
   dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height);
-  printf("\033[2K");
-  printf(":");
+  write(STDOUT_FILENO, "\033[2K", 4);
+  write(STDOUT_FILENO, ":", 1);
+  ansi_emit(ANSI_CURSOR_DOWN);
   fflush(stdout);
 }
 
 void enter_command_mode() {
   Buff.mode = COMMAND_MODE;
-  show_command_mode(); 
+  show_command_mode();
 }
 
 void process_command_input(char *command) {
@@ -482,7 +559,9 @@ void exit_command_mode() {
 
 // Viewing mode
 void enter_viewing_mode() { 
+  move_cursor_horizontaly(-1);
   Buff.mode = VIEWING_MODE;
+  ansi_emit(ANSI_CURSOR_BLOCK);
 }
 
 void handle_viewing_input(char c) {
@@ -491,6 +570,7 @@ void handle_viewing_input(char c) {
     case 'l': move_cursor_horizontaly(1); break;
     case 'j': move_cursor_verticaly(1); break;
     case 'k': move_cursor_verticaly(-1); break;
+    case ' ': move_cursor_horizontaly(1); break;
     case ':': 
       enter_command_mode();
       break;
