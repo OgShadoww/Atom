@@ -9,7 +9,7 @@ This project is an exercise in building a terminal application from scratch, han
 
 ---
 
-## ✨ Features
+## Features
 
 - **Modal Workflow**: Switch between different modes for efficient text manipulation (Viewing, Inserting, Command).
 - **Terminal-Native UI**: Renders its interface using ANSI escape sequences, ensuring it runs in most POSIX-compliant terminals without needing libraries like ncurses.
@@ -18,7 +18,7 @@ This project is an exercise in building a terminal application from scratch, han
 - **Vim-like Controls**: Uses `hjkl` keys for navigation, providing a familiar experience for users of modal editors.
 - **Startup Menu**: Presents a menu when launched without a file argument.
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 .
@@ -36,7 +36,7 @@ The editor keeps its state in a central `Buffer` structure that holds the
 document, cursor position and active mode. Terminal interaction relies on
 raw-mode configuration via `termios` and a small set of ANSI escape sequences.
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -66,7 +66,7 @@ If you run the editor without any arguments, it will start with an empty buffer 
 ./atom
 ```
 
-## 🎛️ Controls
+## Controls
 
 | Key(s)         | Mode     | Action                          |
 |----------------|----------|---------------------------------|
@@ -81,10 +81,10 @@ If you run the editor without any arguments, it will start with an empty buffer 
 | `:wq` + `Enter`  | Command  | Save and quit the editor      |
 
 
-## 🤝 Contributing
+## Contributing
 
 Pull requests and issue reports are welcome. Key areas for contribution include improving buffer management, expanding the set of available commands, and enhancing the rendering loop.
 
-## 📄 License
+## License
 
 This project is distributed under the MIT License. See [`LICENSE`](LICENSE) for more details.
