@@ -66,19 +66,19 @@ To compile the editor, run the following command in the project root:
 ```bash
 make
 ```
-his will produce an executable file named `main`.
+his will produce an executable file named `atom`.
 
 ### Run
 
 To edit an existing file, provide its name as a command-line argument:
 
 ```bash
-./main test.txt
+./atom test.txt
 ```
 
 If you run the editor without any arguments, it will start with an empty buffer and display the main menu.
 ```bash
-./main
+./atom
 ```
 
 ## 🎛️ Controls

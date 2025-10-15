@@ -184,9 +184,10 @@ void append_char(char c) {
 void append_line() {
   if (Buff.document_size == 0) {
     ensure_document_capacity();
-    Buff.document[0].size = 0;
-    Buff.document[0].line = malloc(1);
-    Buff.document[0].line[0] = '\0';
+    Buff.document[0].size = 1;
+    Buff.document[0].line = malloc(2);
+    Buff.document[0].line[0] = '\n';
+    Buff.document[0].line[1] = '\0';
     Buff.document_size = 1;
     Buff.cursor.x = 0;
     Buff.cursor.y = 0;
@@ -204,26 +205,28 @@ void append_line() {
     Buff.document[i] = Buff.document[i - 1];
   }
 
-  int new_line_size = current_size - split_pos;
-  Buff.document[current_line + 1].size = new_line_size;
-  Buff.document[current_line + 1].line = malloc(new_line_size + 1);
+  int remaining_size = current_size - split_pos;
+  
+  Buff.document[current_line + 1].size = remaining_size;
+  Buff.document[current_line + 1].line = malloc(remaining_size + 1);
 
-  if (new_line_size > 0) {
+  if (remaining_size > 0) {
     memcpy(Buff.document[current_line + 1].line,
            &Buff.document[current_line].line[split_pos],
-           new_line_size);
-    Buff.document[current_line + 1].line[new_line_size] = '\0';
-  }
+           remaining_size);
+    Buff.document[current_line + 1].line[remaining_size] = '\0';
+  } 
   else {
     Buff.document[current_line + 1].line[0] = '\0';
   }
 
-  Buff.document[current_line].size = split_pos;
-  Buff.document[current_line].line = realloc(Buff.document[current_line].line, split_pos + 1);
-  Buff.document[current_line].line[split_pos] = '\0';
+  Buff.document[current_line].size = split_pos + 1;
+  Buff.document[current_line].line = realloc(Buff.document[current_line].line, split_pos + 2);
+  Buff.document[current_line].line[split_pos] = '\n';
+  Buff.document[current_line].line[split_pos + 1] = '\0';
 
   Buff.document_size++;
-  Buff.cursor.y++;
+  move_cursor_verticaly(1);
   Buff.cursor.x = 0;
   Buff.cursor.desired_x = 0;
 
@@ -236,26 +239,43 @@ void delete_char() {
   int delete_pos = Buff.cursor.x - 1;
    if(delete_pos < 0) {
     if(Buff.cursor.y > 0) {
-      int prev_line = Buff.cursor.y - 1;
-      int prev_size = Buff.document[prev_line].size;
-      int current_size = Buff.document[Buff.cursor.y].size;
-      
-      Buff.document[prev_line].line = realloc(Buff.document[prev_line].line, 
-                                             prev_size + current_size + 1);
-      strcpy(&Buff.document[prev_line].line[prev_size], Buff.document[Buff.cursor.y].line);
-      Buff.document[prev_line].size = prev_size + current_size;
-      
-      Buff.cursor.y = prev_line;
-      Buff.cursor.x = prev_size;
-      Buff.cursor.desired_x = prev_size;
-      
-      for (int i = Buff.cursor.y + 1; i < Buff.document_size; i++) {
-        Buff.document[i - 1] = Buff.document[i];
-      }
-      Buff.document_size--;
-    }
+      if(Buff.cursor.y > 0) {
+        int current_pos = Buff.cursor.y;
+        int current_size = Buff.document[current_pos].size;
+        int previous_size = Buff.document[current_pos - 1].size;
 
-    draw_editor();
+        int previous_content_size = previous_size;
+        if(previous_size > 0 && Buff.document[current_pos - 1].line[previous_size - 1] == '\n') {
+          previous_content_size = previous_size - 1;
+        }
+  
+        Buff.document[current_pos - 1].size = previous_content_size + current_size;
+  
+        Buff.document[current_pos - 1].line = realloc(
+          Buff.document[current_pos - 1].line,
+          previous_content_size + current_size + 1
+        );
+  
+        memcpy(
+          &Buff.document[current_pos - 1].line[previous_content_size],
+          Buff.document[current_pos].line,
+          current_size
+        );
+  
+        Buff.document[current_pos - 1].line[previous_content_size + current_size] = '\0';
+  
+        free(Buff.document[current_pos].line);
+  
+        for(int i = current_pos; i < Buff.document_size - 1; i++) {
+          Buff.document[i] = Buff.document[i + 1];
+        }
+  
+        Buff.document_size--;
+        move_cursor_verticaly(-1);
+        Buff.cursor.x = previous_content_size;
+        Buff.cursor.desired_x = previous_content_size;
+      }    
+    }
     return;
   } 
 
@@ -398,19 +418,15 @@ void draw_editor() {
   ansi_emit(ANSI_CURSOR_HOME);
 
   // Render
-  if(Buff.document_size < Win.height) {
-    for(int i = 0; i < Buff.document_size; i++) {
-      write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size); 
-    } 
-  }
-  else {
-    for(int i = Win.scroll_y; i < Win.scroll_y + Win.height - 2; i++) {
-      if(i < Buff.document_size ) {
-        write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
-      }
-    }
-  }
+  int max_lines = Win.height - 2;
+  int start_line = Win.scroll_y;
+  int end_line = Win.scroll_y + max_lines;
 
+  // Render visible lines
+  for(int i = start_line; i < end_line && i < Buff.document_size; i++) {
+    write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
+  }
+  
   // Writing status bar
   dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height);
   write(STDOUT_FILENO, "\033[2K", 4);
@@ -442,14 +458,18 @@ void move_cursor_verticaly(int direction) {
   Buff.cursor.y = doc_y;
   Buff.cursor.x = doc_x;
 
-  // Handle scrolling
-  if (Buff.cursor.y > Win.height + Win.scroll_y - 3 && Buff.cursor.y < Buff.document_size) {
-    Win.scroll_y++;
+ // Calculate how many lines we can actually display
+  int max_visible_lines = Win.height - 2;  // Reserve 2 lines for status bar
+  
+  // Scroll down: if cursor is at or past the last visible line
+  if (Buff.cursor.y >= Win.scroll_y + max_visible_lines) {
+    Win.scroll_y = Buff.cursor.y - max_visible_lines + 1;
   }
-  if (Win.scroll_y > 0 && Buff.cursor.y < Win.scroll_y) {
-    Win.scroll_y--;
+  
+  // Scroll up: if cursor moves above the first visible line
+  if (Buff.cursor.y < Win.scroll_y) {
+    Win.scroll_y = Buff.cursor.y;
   }
-
   draw_editor();
 }
 
