@@ -5,6 +5,7 @@
 #include <termios.h>
 #include <wctype.h>
 #include <sys/ioctl.h>
+#include <sys/select.h>
 
 // ===============================
 // CONSTANTS AND KEY DEFINITIONS
@@ -18,7 +19,10 @@
 #define KEY_ENTER 10
 #define KEY_BACKSPACE 127
 #define KEY_TAB 9
-
+#define ESCAPE_KEY_1 'j'
+#define ESCAPE_KEY_2 'j'
+#define ESCAPE_TIMEOUT_MS 500
+ 
 // ===============================
 // ANSI ESCAPE CODES
 // ===============================
@@ -478,6 +482,7 @@ void handle_viewing_input(char c) {
     return;
   }
 
+
   switch (c) {
     case 'h': move_cursor_horizontaly(-movement); Buff.count_prefix = 0; break;
     case 'l': move_cursor_horizontaly(movement); break;
@@ -486,6 +491,21 @@ void handle_viewing_input(char c) {
     case ' ': move_cursor_horizontaly(1); break;
     case ':': enter_command_mode(); break;
     case 'i': enter_inserting_mode(); break;
+    case 'I':
+      for(int i = 0; i < Buff.document[Buff.cursor.y].size; i++) {
+        if(Buff.document[Buff.cursor.y].line[i] != ' ') {
+          move_cursor_horizontaly(i - Buff.cursor.x);
+          enter_inserting_mode();
+          break;
+        }
+      }
+      move_cursor_horizontaly(0);
+      break;
+    case 'A':
+      move_cursor_horizontaly(Buff.document[Buff.cursor.y].size);
+      enter_inserting_mode();
+      break;
+      
   }
   
   Buff.count_prefix = 0;
