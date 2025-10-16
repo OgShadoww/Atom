@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -6,6 +7,7 @@
 #include <wctype.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
+#include <sys/stat.h>
 
 // ===============================
 // CONSTANTS AND KEY DEFINITIONS
@@ -37,6 +39,7 @@ enum AnsiCode {
   ANSI_ERASE_CHARACTER,
   ANSI_CURSOR_BLOCK,
   ANSI_CURSOR_BAR,
+  ANSI_CUROSR_UNDERLINE,
 };
 
 const char *ansi_codes[] = {  
@@ -48,6 +51,7 @@ const char *ansi_codes[] = {
   [ANSI_ERASE_CHARACTER] = "\b \b",
   [ANSI_CURSOR_BLOCK] = "\033[2 q",
   [ANSI_CURSOR_BAR] = "\033[6 q",
+  [ANSI_CUROSR_UNDERLINE] = "\033[4 q"
 };
 
 // ===============================
@@ -81,6 +85,8 @@ typedef struct {
   char *file_name;
   char pending_escape_char;
   int has_pending_escape;
+  char status_msg[128];
+  int status_len;
 } Buffer;
 
 // ===============================
@@ -181,6 +187,20 @@ int wait_for_input_with_timeout(int timeout_ms) {
   return result;
 }
 
+void set_command_status(const char* s) {
+  if (!s) { Buff.status_msg[0] = '\0'; Buff.status_len = 0; return; }
+  size_t n = strlen(s);
+  if (n >= sizeof(Buff.status_msg)) n = sizeof(Buff.status_msg) - 1;
+  memcpy(Buff.status_msg, s, n);
+  Buff.status_msg[n] = '\0';
+  Buff.status_len = (int)n;
+}
+
+void clear_command_status(void) {
+  Buff.status_msg[0] = '\0';
+  Buff.status_len = 0;
+}
+
 // ===============================
 // BUFFER MANAGEMENT
 // ===============================
@@ -197,6 +217,8 @@ void init_editor() {
   Buff.document = malloc(sizeof(Line) * Buff.document_capacity);
   Buff.pending_escape_char = 0;
   Buff.has_pending_escape = 0;
+  Buff.status_msg[0] = '\0';
+  Buff.status_len = 0;
   if(!Buff.document) {
     perror("Malloc failled");
     exit(1);
@@ -234,12 +256,25 @@ void ensure_document_capacity() {
 }
 
 void open_editor(char *filen) {
+  struct stat st;
+  if (stat(filen, &st) != 0) {
+    dprintf(STDERR_FILENO, "\033[1;31mError:\033[0m File '%s' not found.\n", filen);
+    disable_raw_mode();
+    exit(1);
+  }
+
+  if (S_ISDIR(st.st_mode)) {
+    dprintf(STDERR_FILENO, "\033[1;31mError:\033[0m '%s' is a directory.\n", filen);
+    disable_raw_mode();
+    exit(1);
+  }
+
   for (int i = 0; i < Buff.document_size; i++) {
     free(Buff.document[i].line);
     Buff.document[i].line = NULL;
     Buff.document[i].size = 0;
   }
-  Buff.document_size = 0;
+  Buff.document_size = 0; 
 
   FILE *file = fopen(filen, "r");
 
@@ -296,7 +331,7 @@ void draw_editor() {
   }
   
   // Writing status bar
-  dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height);
+  dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height - 1);
   write(STDOUT_FILENO, "\033[2K", 4);
   if(Buff.count_prefix > 0) {
     int padding = Win.width - strlen(Buff.file_name) - 20;
@@ -305,6 +340,13 @@ void draw_editor() {
   }
   else {
     dprintf(STDOUT_FILENO,"%s\t%d,%d", Buff.file_name, Buff.cursor.y + 1, Buff.cursor.x + 1);
+  }
+
+  // Writing command message
+  if(Buff.status_len > 0) {
+    dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height);
+    //dprintf(STDOUT_FILENO, "%s", Buff.status_msg);
+    dprintf(STDOUT_FILENO, "%.*s", Buff.status_len, Buff.status_msg);
   }
   
   // Showing cursor
@@ -450,6 +492,32 @@ void delete_char() {
   draw_editor();
 }
 
+void delete_line() {
+  if(Buff.document_size == 0) {
+    draw_editor();
+    return;
+  }
+  
+  int current_line = Buff.cursor.y; 
+
+  free(Buff.document[current_line].line);
+  Buff.document[current_line].size = 0;
+  Buff.document[current_line].line = NULL;
+
+  for(int i = current_line; i < Buff.document_size; i++) {
+    Buff.document[i] = Buff.document[i+1];
+  }
+
+  Buff.document_size--;
+  if(Buff.cursor.y >= Buff.document_size) {
+    move_cursor_verticaly(-1);
+  }
+  if(Buff.cursor.y <= 1) {
+    move_cursor_horizontaly(-Buff.document_size);
+  }
+  draw_editor();
+}
+
 // ===============================
 // CURSOR MOVEMENT
 // ===============================
@@ -495,6 +563,7 @@ void enter_viewing_mode() {
   Buff.mode = VIEWING_MODE;
   Buff.count_prefix = 0;
   ansi_emit(ANSI_CURSOR_BLOCK);
+  clear_command_status();
 }
 
 void handle_viewing_input(char c) {
@@ -505,13 +574,6 @@ void handle_viewing_input(char c) {
     Buff.count_prefix = clamp(Buff.count_prefix, 0, 100000);
     draw_editor();
     return;
-  }
-
-  if(c == KEY_ESC) {
-    char seq[128];
-    int cmd_pos = 0;
-    
-    
   }
 
   switch (c) {
@@ -543,6 +605,9 @@ void handle_viewing_input(char c) {
     case 'G':
       move_cursor_verticaly(-Buff.document_size);
       break;
+    case 'd':
+      delete_line();
+      break;
   }
   
   Buff.count_prefix = 0;
@@ -553,6 +618,8 @@ void handle_viewing_input(char c) {
 void enter_inserting_mode() {
   Buff.mode = INSERTING_MODE;
   ansi_emit(ANSI_CURSOR_BAR);
+  clear_command_status();
+  set_command_status("-- INSERT --");
 }
 
 void handle_inserting_input(char c) {
@@ -635,6 +702,7 @@ void exit_inserting_mode() {
 
 void enter_command_mode() {
   Buff.mode = COMMAND_MODE;
+  ansi_emit(ANSI_CUROSR_UNDERLINE);
   dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height);
   write(STDOUT_FILENO, "\033[2K", 4);
   write(STDOUT_FILENO, ":", 1);
@@ -676,19 +744,12 @@ void handle_command_input(char c) {
 }
 
 void process_command_input(char *command) {
-  if(strcmp(command, "q") == 0) {
-    cmd_quit();
-  }
-  if(strcmp(command, "w") == 0) {
-    cmd_save_file();
-  }
-  if(strcmp(command, "wq") == 0) {
-    cmd_save_file();
-    cmd_quit();
-  }
-  else {
-    return;
-  }
+  if (strcmp(command, "q") == 0) cmd_quit(); return;
+  if (strcmp(command, "w") == 0) cmd_save_file(); return;
+  if (strcmp(command, "wq")== 0) cmd_save_file(); cmd_quit(); return;
+
+  set_command_status("\033[1;31mError:\033[0m Command not found");
+  exit_command_mode();
 }
 
 void exit_command_mode() {
@@ -696,7 +757,7 @@ void exit_command_mode() {
   int screen_y = Buff.cursor.y - Win.scroll_y + 1;
   dprintf(STDOUT_FILENO, "\033[%d;%dH", screen_y, Buff.cursor.x + 1);
   draw_editor();
-  Buff.mode = VIEWING_MODE;
+  enter_viewing_mode();
 }
 
 // ===============================
@@ -721,6 +782,7 @@ void cmd_save_file(void) {
   }
   
   fclose(file);
+  set_command_status("\033[32mWrote file\033[0m");
   exit_command_mode();
 }
 
