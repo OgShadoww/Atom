@@ -78,6 +78,8 @@ typedef struct {
   int document_capacity;
   Cursor cursor;
   char *file_name;
+  char pending_escape_char;
+  int has_pending_escape;
 } Buffer;
 
 // ===============================
@@ -158,6 +160,25 @@ void enable_raw_mode() {
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
 
+int wait_for_input_with_timeout(int timeout_ms) {
+  fd_set readfds;
+  struct timeval timeout;
+
+  // Clear the set
+  FD_ZERO(&readfds);
+
+  // Add stdin (STDIN_FILENO) to the set
+  FD_SET(STDIN_FILENO, &readfds);
+
+  // Set timeout
+  timeout.tv_sec = timeout_ms / 1000;           // seconds
+  timeout.tv_usec = (timeout_ms % 1000) * 1000; // microseconds
+
+  int result = select(STDIN_FILENO + 1, &readfds, NULL, NULL, &timeout);
+
+  return result;
+}
+
 // ===============================
 // BUFFER MANAGEMENT
 // ===============================
@@ -172,6 +193,8 @@ void init_editor() {
   Buff.document_size = 0;
   Buff.file_name = NULL;
   Buff.document = malloc(sizeof(Line) * Buff.document_capacity);
+  Buff.pending_escape_char = 0;
+  Buff.has_pending_escape = 0;
   if(!Buff.document) {
     perror("Malloc failled");
     exit(1);
@@ -519,6 +542,52 @@ void enter_inserting_mode() {
 }
 
 void handle_inserting_input(char c) {
+  // Check if we're waiting for second character of escape sequence
+  if(Buff.has_pending_escape) {
+    if(c == ESCAPE_KEY_2) {
+      delete_char();
+      exit_inserting_mode();
+    }
+    else {
+      if (c == KEY_BACKSPACE) {
+        delete_char();
+      } 
+      else if (c == KEY_ENTER) {
+        append_line();
+      } 
+      else if (c >= 32 && c <= 126) {
+        append_char(c);
+      } 
+    }
+
+    Buff.has_pending_escape = 0; 
+    Buff.pending_escape_char = 0;
+    draw_editor();
+    return;
+  }
+
+  // // Check if this is the first character of escape sequence
+  if(c == ESCAPE_KEY_1) {
+    append_char(c);
+    draw_editor();
+    
+    int result = wait_for_input_with_timeout(ESCAPE_TIMEOUT_MS);
+
+    if(result > 0) {
+      Buff.pending_escape_char = c;
+      Buff.has_pending_escape = 1;
+      return;
+    }
+    else if(result == 0) {
+      Buff.has_pending_escape = 0;
+      return;
+    }
+    else {
+      Buff.has_pending_escape = 0;
+      return;
+    }
+  }
+
   switch (c) {
     case KEY_ESC: 
       exit_inserting_mode(); 
