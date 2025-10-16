@@ -19,6 +19,7 @@
 #define KEY_ENTER 10
 #define KEY_BACKSPACE 127
 #define KEY_TAB 9
+#define TAB_VAL 2
 #define ESCAPE_KEY_1 'j'
 #define ESCAPE_KEY_2 'j'
 #define ESCAPE_TIMEOUT_MS 500
@@ -96,6 +97,7 @@ Window Win;
 
 void ansi_emit(enum AnsiCode code);
 int clamp(int v, int lo, int hi);
+int wait_for_input_with_timeout(int timeout_ms);
 void disable_raw_mode(void);
 void enable_raw_mode(void);
 void ensure_document_capacity(void);
@@ -321,7 +323,7 @@ void append_char(char c) {
   if(Buff.document_size == 0) {
     ensure_document_capacity();
     Buff.document_size = 1;
-    Buff.document[0].size = 0;
+    Buff.document[0].size = 1;
     Buff.document[0].line = malloc(1);
     Buff.document_size = 1;
     Buff.cursor.x = 0;
@@ -498,13 +500,19 @@ void enter_viewing_mode() {
 void handle_viewing_input(char c) {
   int movement = (Buff.count_prefix > 0) ? Buff.count_prefix : 1;
     
-  if (c >= '0' && c <= '9') {
+  if (c > '0' && c <= '9') {
     Buff.count_prefix = Buff.count_prefix * 10 + (c - '0');
     Buff.count_prefix = clamp(Buff.count_prefix, 0, 100000);
     draw_editor();
     return;
   }
 
+  if(c == KEY_ESC) {
+    char seq[128];
+    int cmd_pos = 0;
+    
+    
+  }
 
   switch (c) {
     case 'h': move_cursor_horizontaly(-movement); Buff.count_prefix = 0; break;
@@ -514,6 +522,7 @@ void handle_viewing_input(char c) {
     case ' ': move_cursor_horizontaly(1); break;
     case ':': enter_command_mode(); break;
     case 'i': enter_inserting_mode(); break;
+    case 'a': move_cursor_horizontaly(1); enter_inserting_mode(); break;
     case 'I':
       for(int i = 0; i < Buff.document[Buff.cursor.y].size; i++) {
         if(Buff.document[Buff.cursor.y].line[i] != ' ') {
@@ -528,7 +537,12 @@ void handle_viewing_input(char c) {
       move_cursor_horizontaly(Buff.document[Buff.cursor.y].size);
       enter_inserting_mode();
       break;
-      
+    case '0':
+      move_cursor_horizontaly(-Buff.document[Buff.cursor.y].size);
+      break;
+    case 'G':
+      move_cursor_verticaly(-Buff.document_size);
+      break;
   }
   
   Buff.count_prefix = 0;
@@ -601,8 +615,7 @@ void handle_inserting_input(char c) {
       draw_editor();
       break;
     case KEY_TAB:
-      append_char(' ');
-      append_char(' ');
+      for(int i = 0; i < TAB_VAL; i++) append_char(' ');
       draw_editor();
       break;
     default:
