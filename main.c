@@ -244,12 +244,12 @@ void free_editor() {
 void ensure_document_capacity() {
   if(Buff.document_size >= Buff.document_capacity) {
     Buff.document_capacity *= 2;
-    Buff.document = realloc(Buff.document, sizeof(Line) * Buff.document_capacity);
-    if(!Buff.document) {
-      perror("Realloc failled");
+    Line *tmp = realloc(Buff.document, sizeof(Line) * Buff.document_capacity);
+    if (!tmp) {
+      perror("realloc");
       exit(1);
     }
-
+    Buff.document = tmp;
     for(int i = Buff.document_size; i < Buff.document_capacity; i++) {
       Buff.document[i].line = NULL;
       Buff.document[i].size = 0;
@@ -338,7 +338,6 @@ void draw_editor() {
   if(Buff.count_prefix > 0) {
     int padding = Win.width - strlen(Buff.file_name) - 20;
     dprintf(STDOUT_FILENO,"%s\t%d,%d%*s%d", Buff.file_name, Buff.cursor.y + 1, Buff.cursor.x + 1, padding, "", Buff.count_prefix);
-    //Buff.count_prefix = 0;
   }
   else {
     dprintf(STDOUT_FILENO,"%s\t%d,%d", Buff.file_name, Buff.cursor.y + 1, Buff.cursor.x + 1);
@@ -365,9 +364,9 @@ void draw_editor() {
 void append_char(char c) {
   if(Buff.document_size == 0) {
     ensure_document_capacity();
-    Buff.document[0].size = 0;
+    Buff.document[0].size = 1;
     Buff.document[0].line = malloc(1);
-    if (!Buff.document[0].line) perror("malloc"); exit(1);
+    if (!Buff.document[0].line) { perror("malloc"); exit(1); }
     Buff.document[0].line[0] = '\0';
     Buff.document_size = 1;
     Buff.cursor.x = 0;
@@ -377,8 +376,10 @@ void append_char(char c) {
   int original_size = Buff.document[Buff.cursor.y].size;
   int insert_pos = Buff.cursor.x;
 
-  Buff.document[Buff.cursor.y].size++; 
+  Buff.document[Buff.cursor.y].size++;
   Buff.document[Buff.cursor.y].line = realloc(Buff.document[Buff.cursor.y].line, Buff.document[Buff.cursor.y].size + 1);
+  if (!Buff.document[Buff.cursor.y].line) { perror("realloc"); exit(1); }
+
   for(int i = original_size - 1; i >= insert_pos; i--) {
     Buff.document[Buff.cursor.y].line[i + 1] = Buff.document[Buff.cursor.y].line[i];
   }
@@ -392,7 +393,7 @@ void append_line() {
     ensure_document_capacity();
     Buff.document[0].size = 1;
     Buff.document[0].line = malloc(1);
-    if (!Buff.document[0].line) perror("malloc"); exit(1);
+    if (!Buff.document[0].line) { perror("malloc"); exit(1); }
     Buff.document[0].line[1] = '\0';
     Buff.document_size = 1;
     Buff.cursor.x = 0;
@@ -570,7 +571,7 @@ void enter_viewing_mode() {
 void handle_viewing_input(char c) {
   int movement = (Buff.count_prefix > 0) ? Buff.count_prefix : 1;
     
-  if (c > '0' && c <= '9') {
+  if (c >= '0' && c <= '9') {
     Buff.count_prefix = Buff.count_prefix * 10 + (c - '0');
     Buff.count_prefix = clamp(Buff.count_prefix, 0, 100000);
     draw_editor();
@@ -600,11 +601,8 @@ void handle_viewing_input(char c) {
       move_cursor_horizontaly(Buff.document[Buff.cursor.y].size);
       enter_inserting_mode();
       break;
-    case '0':
-      move_cursor_horizontaly(-Buff.document[Buff.cursor.y].size);
-      break;
     case 'G':
-      move_cursor_verticaly(-Buff.document_size);
+      move_cursor_verticaly(Buff.document_size);
       break;
     case 'd':
       delete_line();
@@ -810,7 +808,11 @@ void editor_key_press() {
   char c;
   while(1) {
     read(STDIN_FILENO, &c, sizeof(c)); 
-   
+    if (c == 0) {
+      cmd_quit();
+      return;
+    } 
+
     switch (Buff.mode) {
       case VIEWING_MODE:
         handle_viewing_input(c);
@@ -841,7 +843,7 @@ int main(int arg, char **file) {
   enable_raw_mode();
   draw_editor();
   editor_key_press();
- 
+
   free_editor();
   disable_raw_mode();
   return 0;
