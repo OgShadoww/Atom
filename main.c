@@ -5,6 +5,7 @@
 #include <string.h>
 #include <termios.h>
 #include <wctype.h>
+#include <ctype.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <sys/stat.h>
@@ -24,7 +25,7 @@
 #define TAB_VAL 2
 #define ESCAPE_KEY_1 'j'
 #define ESCAPE_KEY_2 'j'
-#define ESCAPE_TIMEOUT_MS 500
+#define ESCAPE_TIMEOUT_MS 300
  
 // ===============================
 // ANSI ESCAPE CODES
@@ -625,10 +626,8 @@ void enter_inserting_mode() {
 }
 
 void handle_inserting_input(char c) {
-  // Check if we're waiting for second character of escape sequence
   if(Buff.has_pending_escape) {
     if(c == ESCAPE_KEY_2) {
-      delete_char();
       exit_inserting_mode();
     }
     else {
@@ -649,11 +648,7 @@ void handle_inserting_input(char c) {
     return;
   }
 
-  // // Check if this is the first character of escape sequence
   if(c == ESCAPE_KEY_1) {
-    append_char(c);
-    draw_editor();
-    
     int result = wait_for_input_with_timeout(ESCAPE_TIMEOUT_MS);
 
     if(result > 0) {
@@ -662,10 +657,14 @@ void handle_inserting_input(char c) {
       return;
     }
     else if(result == 0) {
+      append_char(c); 
+      draw_editor();
       Buff.has_pending_escape = 0;
       return;
     }
     else {
+      append_char(c);
+      draw_editor();
       Buff.has_pending_escape = 0;
       return;
     }
@@ -746,6 +745,7 @@ void handle_command_input(char c) {
 }
 
 void process_command_input(char *command) {
+
   if (strcmp(command, "q") == 0) {
     cmd_quit();
   } 
@@ -798,6 +798,7 @@ void cmd_save_file(void) {
 }
 
 void cmd_quit(void) {
+  ansi_emit(ANSI_CURSOR_SHOW);
   free_editor();
   disable_raw_mode();
   ansi_emit(ANSI_CLEAR);
