@@ -365,8 +365,10 @@ void append_char(char c) {
   if(Buff.document_size == 0) {
     ensure_document_capacity();
     Buff.document_size = 1;
-    Buff.document[0].size = 1;
+    Buff.document[0].size = 0;
     Buff.document[0].line = malloc(1);
+    if (!Buff.document[0].line) perror("malloc"); exit(1);
+    Buff.document[0].line[0] = '\0';
     Buff.document_size = 1;
     Buff.cursor.x = 0;
     Buff.cursor.y = 0;
@@ -389,8 +391,8 @@ void append_line() {
   if (Buff.document_size == 0) {
     ensure_document_capacity();
     Buff.document[0].size = 1;
-    Buff.document[0].line = malloc(2);
-    Buff.document[0].line[0] = '\n';
+    Buff.document[0].line = malloc(1);
+    if (!Buff.document[0].line) perror("malloc"); exit(1);
     Buff.document[0].line[1] = '\0';
     Buff.document_size = 1;
     Buff.cursor.x = 0;
@@ -714,7 +716,7 @@ void handle_command_input(char c) {
   static int cmd_pos = 0;
 
   switch (c) {
-    case 10:
+    case KEY_ENTER:
       command_buffer[cmd_pos] = '\0';
       cmd_pos = 0;
       process_command_input(command_buffer);
@@ -744,12 +746,21 @@ void handle_command_input(char c) {
 }
 
 void process_command_input(char *command) {
-  if (strcmp(command, "q") == 0) cmd_quit(); return;
-  if (strcmp(command, "w") == 0) cmd_save_file(); return;
-  if (strcmp(command, "wq")== 0) cmd_save_file(); cmd_quit(); return;
-
-  set_command_status("\033[1;31mError:\033[0m Command not found");
-  exit_command_mode();
+  if (strcmp(command, "q") == 0) {
+    cmd_quit();
+  } 
+  else if (strcmp(command, "w") == 0) {
+    cmd_save_file();
+    exit_command_mode();
+  } 
+  else if (strcmp(command, "wq") == 0) {
+    cmd_save_file();
+    cmd_quit();
+  } 
+  else {
+    set_command_status("\033[1;31mError:\033[0m Command not found");
+    exit_command_mode();
+  }
 }
 
 void exit_command_mode() {
@@ -771,7 +782,7 @@ void cmd_save_file(void) {
   }
   
   FILE *file = fopen(Buff.file_name, "w");
-  if (!file) {
+  if (file == NULL) {
     perror("Error saving file");
     exit_command_mode();
     return;
@@ -782,8 +793,8 @@ void cmd_save_file(void) {
   }
   
   fclose(file);
-  set_command_status("\033[32mWrote file\033[0m");
   exit_command_mode();
+  set_command_status("Saved");
 }
 
 void cmd_quit(void) {
