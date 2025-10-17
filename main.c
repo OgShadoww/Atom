@@ -158,6 +158,7 @@ int clamp(int v, int lo, int hi) {
 
 // Functions to work with terminal text modes
 void disable_raw_mode() {
+  ansi_emit(ANSI_CURSOR_SHOW);
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &OriginalTermios);
 }
 
@@ -346,7 +347,6 @@ void draw_editor() {
   // Writing command message
   if(Buff.status_len > 0) {
     dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height);
-    //dprintf(STDOUT_FILENO, "%s", Buff.status_msg);
     dprintf(STDOUT_FILENO, "%.*s", Buff.status_len, Buff.status_msg);
   }
   
@@ -365,7 +365,6 @@ void draw_editor() {
 void append_char(char c) {
   if(Buff.document_size == 0) {
     ensure_document_capacity();
-    Buff.document_size = 1;
     Buff.document[0].size = 0;
     Buff.document[0].line = malloc(1);
     if (!Buff.document[0].line) perror("malloc"); exit(1);
@@ -437,7 +436,6 @@ void append_line() {
   Buff.cursor.desired_x = 0;
 
   draw_editor();
-  fflush(stdout);
 }
 
 void delete_char() {
@@ -707,7 +705,6 @@ void enter_command_mode() {
   dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height);
   write(STDOUT_FILENO, "\033[2K", 4);
   write(STDOUT_FILENO, ":", 1);
-  fflush(stdout);
 }
 
 void handle_command_input(char c) {
@@ -745,7 +742,6 @@ void handle_command_input(char c) {
 }
 
 void process_command_input(char *command) {
-
   if (strcmp(command, "q") == 0) {
     cmd_quit();
   } 
