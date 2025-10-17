@@ -530,7 +530,7 @@ void move_cursor_horizontaly(int direction) {
   Buff.cursor.desired_x = doc_x;
   Buff.cursor.x = doc_x;
 
-  draw_editor();
+  //draw_editor();
 }
 
 void move_cursor_verticaly(int direction) {
@@ -550,7 +550,7 @@ void move_cursor_verticaly(int direction) {
   if (Buff.cursor.y < Win.scroll_y) {
     Win.scroll_y = Buff.cursor.y;
   }
-  draw_editor();
+  //draw_editor();
 }
 
 // ===============================
