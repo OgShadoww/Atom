@@ -838,6 +838,7 @@ void cmd_save_file(void) {
 
 void cmd_quit(void) {
   ansi_emit(ANSI_CURSOR_SHOW);
+  ansi_emit(ANSI_CURSOR_BLOCK);
   free_editor();
   disable_raw_mode();
   ansi_emit(ANSI_CLEAR);
