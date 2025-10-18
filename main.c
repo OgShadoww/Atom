@@ -802,7 +802,7 @@ void process_command_input(char *command) {
 }
 
 void exit_command_mode() {
-  ansi_emit(ANSI_ERASE_CHARACTER);
+  dprintf(STDOUT_FILENO, "\033[%d;1H\033[2K", Win.height);
   int screen_y = Buff.cursor.y - Win.scroll_y + 1;
   dprintf(STDOUT_FILENO, "\033[%d;%dH", screen_y, Buff.cursor.x + 1);
   draw_editor();
@@ -836,12 +836,11 @@ void cmd_save_file(void) {
 }
 
 void cmd_quit(void) {
-  ansi_emit(ANSI_CURSOR_SHOW);
-  ansi_emit(ANSI_CURSOR_BLOCK);
   free_editor();
   disable_raw_mode();
   ansi_emit(ANSI_CLEAR);
   ansi_emit(ANSI_CURSOR_HOME);
+  write(STDOUT_FILENO, "\033[0m", 4);
   exit(0);
 }
 
