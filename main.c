@@ -873,6 +873,7 @@ void editor_key_press() {
 }
 
 int main(int arg, char **file) {
+  ansi_emit(ANSI_CLEAR);
   create_window();
   enable_raw_mode();
 
