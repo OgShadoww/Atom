@@ -757,21 +757,20 @@ void handle_command_input(char c) {
   switch (c) {
     case KEY_ENTER:
       command_buffer[cmd_pos] = '\0';
-      cmd_pos = 0;
       process_command_input(command_buffer);
+      cmd_pos = 0;
       break;
-    case '\033':
+    case KEY_ESC:
       cmd_pos = 0;
       enter_viewing_mode();
       break;
-    case 127:
+    case KEY_BACKSPACE:
       if(cmd_pos > 0) {
         cmd_pos--;
         ansi_emit(ANSI_ERASE_CHARACTER);
       }
       else {
         exit_command_mode();
-        break;
       }
       break;
     default: 
@@ -888,9 +887,11 @@ int main(int arg, char **file) {
   init_editor();
   open_editor(file[1]);
   enable_raw_mode();
+  mark_all_lines_dirty();
   draw_editor();
   editor_key_press();
 
+  ansi_emit(ANSI_CURSOR_SHOW);
   free_editor();
   disable_raw_mode();
   return 0;
