@@ -14,14 +14,19 @@
 // CONSTANTS AND KEY DEFINITIONS
 // ===============================
 
-#define INSERTING_MODE 0
-#define VIEWING_MODE 1
-#define COMMAND_MODE 2
+typedef enum {
+  MODE_VIEW,
+  MODE_INSERT,
+  MODE_COMMAND,
+} EditorMode;
 
-#define KEY_ESC 27
-#define KEY_ENTER 10
-#define KEY_BACKSPACE 127
-#define KEY_TAB 9
+enum Key {
+  KEY_ESC = 27,
+  KEY_ENTER = 10,
+  KEY_BACKSPACE = 127,
+  KEY_TAB = 9,
+};
+
 #define TAB_VAL 2
 #define ESCAPE_KEY_1 'j'
 #define ESCAPE_KEY_2 'j'
@@ -61,8 +66,8 @@ const char *ansi_codes[] = {
 
 typedef struct {
   int count;
-  char *command;
-  char *action; 
+  char command[128];
+  char action[128]; 
 } Prefix;
 
 typedef struct {
@@ -84,7 +89,7 @@ typedef struct {
 } Window;
 
 typedef struct {
-  int mode;
+  EditorMode mode;
   Prefix prefix;
   Line *document;
   int document_size;
@@ -124,6 +129,7 @@ void draw_editor(void);
 void append_char(char c);
 void delete_char(void);
 void append_line(void);
+void delete_line(void);
 
 void move_cursor_horizontaly(int direction);
 void move_cursor_verticaly(int direction);
@@ -224,6 +230,66 @@ void mark_all_lines_dirty() {
   }
 }
 
+int is_operator(char c) {
+  switch (c) {
+    case 'd':
+      return 1;
+      break;
+    case 'c':
+      return 1;
+      break;
+    case 'y':
+      return 1;
+      break;
+  }
+  
+  return 0;
+}
+
+int is_motion(char c) {
+  switch (c) {
+    case 'j':
+      return 1;
+      break;
+    case 'k':
+      return 1;
+      break;
+    case 'h':
+      return 1;
+      break;
+    case 'l':
+      return 1;
+      break;
+    case 'w':
+      return 1;
+      break;
+  }
+
+  return 0;
+}
+
+void reset_prefix() {
+  Buff.prefix.count = 0;
+  Buff.prefix.command[0] = '\0';
+  Buff.prefix.action[0] = '\0';
+  draw_editor();
+}
+
+void execute_motion(int count, char c) {
+  switch (c) {
+    case 'h': for(int i = 0; i < count; i++) move_cursor_horizontaly(-1); break;
+    case 'l': for(int i = 0; i < count; i++) move_cursor_horizontaly(1); break;
+    case 'j': for(int i = 0; i < count; i++) move_cursor_verticaly(1); break;
+    case 'k': for(int i = 0; i < count; i++) move_cursor_verticaly(-1); break; 
+  }  
+}
+
+void execute_operator(int count, char c) {
+  switch (c) {
+    case 'd': for(int i = 0; i < count; i++) delete_line(); break;
+  }
+}
+
 // ===============================
 // BUFFER MANAGEMENT
 // ===============================
@@ -232,9 +298,9 @@ void init_editor() {
   Buff.cursor.x = 0;
   Buff.cursor.y = 0;
   Buff.cursor.desired_x = 0;
-  Buff.mode = VIEWING_MODE;
-  Buff.prefix.command = NULL;
-  Buff.prefix.action = NULL;
+  Buff.mode = MODE_VIEW;
+  Buff.prefix.command[0] = '\0';
+  Buff.prefix.action[0] = '\0';
   Buff.prefix.count = 0;
   Buff.document_capacity = 512;
   Buff.document_size = 0;
@@ -607,27 +673,51 @@ void move_cursor_verticaly(int direction) {
 
 void enter_viewing_mode() { 
   move_cursor_horizontaly(-1);
-  Buff.mode = VIEWING_MODE;
-  //Buff.count_prefix = 0;
+  Buff.mode = MODE_VIEW;
   ansi_emit(ANSI_CURSOR_BLOCK);
   clear_command_status();
 }
 
 void handle_viewing_input(char c) {
-  int movement = (Buff.prefix.count > 0) ? Buff.prefix.count : 1;
-    
-  if (c >= '0' && c <= '9') {
-    //Buff.count_prefix = Buff.count_prefix * 10 + (c - '0');
-    //Buff.count_prefix = clamp(Buff.count_prefix, 0, 100000);
-    //draw_editor();
+  if(isdigit(c)) {
+    if(c == '0' && Buff.prefix.count == 0) {
+      move_cursor_horizontaly(-Win.width);
+      return;
+    }
+    Buff.prefix.count = Buff.prefix.count * 10 + (c - '0');
+    draw_editor();
     return;
   }
-
+  if(c == KEY_ESC) {
+    reset_prefix();
+    return;
+  }
+  if(is_operator(c)) {
+    if(Buff.prefix.command[0] == '\0') {
+      Buff.prefix.command[0] = c;
+      Buff.prefix.command[1] = '\0';
+      draw_editor();
+      return;
+    }
+    else if(Buff.prefix.command[0] == c) {
+      int count = (Buff.prefix.count > 0) ? Buff.prefix.count : 1;
+      execute_operator(count, c);
+      reset_prefix();
+      return;
+    }
+  }
+  if(is_motion(c)) {
+    if(Buff.prefix.command[0] == '\0') {
+      int count = (Buff.prefix.count > 0) ? Buff.prefix.count : 1;
+      execute_motion(count, c);
+      reset_prefix();
+    }
+    
+    reset_prefix();
+    return;
+  }
+    
   switch (c) {
-    case 'h': move_cursor_horizontaly(-movement); Buff.prefix.count = 0; break;
-    case 'l': move_cursor_horizontaly(movement); break;
-    case 'j': move_cursor_verticaly(movement); break;
-    case 'k': move_cursor_verticaly(-movement); break;
     case ' ': move_cursor_horizontaly(1); break;
     case ':': enter_command_mode(); break;
     case 'i': enter_inserting_mode(); break;
@@ -642,25 +732,15 @@ void handle_viewing_input(char c) {
       }
       move_cursor_horizontaly(0);
       break;
-    case 'A':
-      move_cursor_horizontaly(Buff.document[Buff.cursor.y].size);
-      enter_inserting_mode();
-      break;
-    case 'G':
-      move_cursor_verticaly(Buff.document_size);
-      break;
-    case 'd':
-      delete_line();
-      break;
+    case 'A': move_cursor_horizontaly(Buff.document[Buff.cursor.y].size); enter_inserting_mode(); break;
+    case 'G': move_cursor_verticaly(Buff.document_size); break;
   }
-  
-  Buff.prefix.count = 0;
 }
 
 // --- INSERTING MODE ---
 
 void enter_inserting_mode() {
-  Buff.mode = INSERTING_MODE;
+  Buff.mode = MODE_INSERT;
   ansi_emit(ANSI_CURSOR_BAR);
   clear_command_status();
   set_command_status("-- INSERT --");
@@ -743,7 +823,7 @@ void exit_inserting_mode() {
 // --- COMMAND MODE ---
 
 void enter_command_mode() {
-  Buff.mode = COMMAND_MODE;
+  Buff.mode = MODE_COMMAND;
   ansi_emit(ANSI_CUROSR_UNDERLINE);
   dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height);
   write(STDOUT_FILENO, "\033[2K", 4);
@@ -839,7 +919,7 @@ void cmd_quit(void) {
   free_editor();
   disable_raw_mode();
   ansi_emit(ANSI_CLEAR);
-  ansi_emit(ANSI_CURSOR_HOME);
+  //ansi_emit(ANSI_CURSOR_HOME);
   write(STDOUT_FILENO, "\033[0m", 4);
   exit(0);
 }
@@ -858,13 +938,13 @@ void editor_key_press() {
     } 
 
     switch (Buff.mode) {
-      case VIEWING_MODE:
+      case MODE_VIEW:
         handle_viewing_input(c);
         break;
-      case INSERTING_MODE:
+      case MODE_INSERT:
         handle_inserting_input(c);
         break;
-      case COMMAND_MODE:
+      case MODE_COMMAND:
         handle_command_input(c);
         break;
     }
@@ -893,5 +973,6 @@ int main(int arg, char **file) {
   ansi_emit(ANSI_CURSOR_SHOW);
   free_editor();
   disable_raw_mode();
+  ansi_emit(ANSI_CLEAR);
   return 0;
 }
