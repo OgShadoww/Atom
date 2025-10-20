@@ -98,7 +98,7 @@ typedef struct {
   char *file_name;
   char pending_escape_char;
   int has_pending_escape;
-  char status_msg[128];
+  char status_msg[128]; // Change for Line
   int status_len;
 } Buffer;
 
@@ -355,7 +355,6 @@ void open_editor(char *filen) {
     disable_raw_mode();
     exit(1);
   }
-
   if (S_ISDIR(st.st_mode)) {
     dprintf(STDERR_FILENO, "\033[1;31mError:\033[0m '%s' is a directory.\n", filen);
     disable_raw_mode();
@@ -411,9 +410,6 @@ void create_window() {
 
 void draw_editor() {
   ansi_emit(ANSI_CURSOR_HIDE);
-  //ansi_emit(ANSI_CLEAR);
-  //ansi_emit(ANSI_CLEAR_SCROLL);
-  //ansi_emit(ANSI_CURSOR_HOME);
 
   // Render
   int max_lines = Win.height - 2;
@@ -922,7 +918,7 @@ void cmd_quit(void) {
   free_editor();
   disable_raw_mode();
   ansi_emit(ANSI_CLEAR);
-  //ansi_emit(ANSI_CURSOR_HOME);
+  ansi_emit(ANSI_CURSOR_HOME);
   write(STDOUT_FILENO, "\033[0m", 4);
   exit(0);
 }
