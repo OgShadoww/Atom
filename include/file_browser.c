@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#define PATH_MAX 128
+#define PATH_LEN 128
 
 // ===============================
 // DATA STRUCTURES
@@ -29,7 +29,7 @@ typedef struct {
   FileEntry *entries;
   int count;
   int selected;
-  char current_path[PATH_MAX];
+  char current_path[PATH_LEN];
 } FileBrowser;
 
 // ===============================
