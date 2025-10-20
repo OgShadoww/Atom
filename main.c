@@ -613,13 +613,16 @@ void delete_line() {
   free(Buff.document[current_line].line);
   Buff.document[current_line].size = 0;
   Buff.document[current_line].line = NULL;
+  Buff.document[current_line].is_dirty = 1;
 
   for(int i = current_line; i < Buff.document_size; i++) {
     Buff.document[i] = Buff.document[i+1];
-    Buff.document[i].is_dirty = 1;
   }
 
   Buff.document_size--;
+  mark_all_lines_dirty();
+  Buff.cursor.x = 0;
+  Buff.cursor.desired_x = 0;
   if(Buff.cursor.y >= Buff.document_size) {
     move_cursor_verticaly(-1);
   }
