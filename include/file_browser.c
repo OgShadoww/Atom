@@ -75,12 +75,8 @@ FileEntry *load_all_entries(char *path, int *total_count) {
   dir = NULL;
   *total_count = count;
 
-  return entries;
+  return entries; 
 }
-
-// ===============================
-// MAIN CODE
-// ===============================
 
 void init_file_browser() {
   char path[128];
@@ -94,12 +90,13 @@ void free_file_browser() {
  free(Browser.entries); 
 }
 
-int main() {
+void start_browsing() {
   init_file_browser();
   for(int i = 0; i < Browser.count; i++) {
-    printf("%s\n", Browser.entries[i].name);
+    write(STDOUT_FILENO, Browser.entries[i].name, strlen(Browser.entries[i].name));
+    write(STDOUT_FILENO, "\n", 1);
   }
-  free_file_browser();
 
-  return 0;
+  free_file_browser(); 
+  return;
 }

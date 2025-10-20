@@ -153,6 +153,7 @@ void editor_key_press(void);
 
 // External
 void start_menu(int win_h, int win_w);
+void start_browsing();
 
 // ----------
 // HELPERS
@@ -961,17 +962,22 @@ int main(int arg, char **file) {
     disable_raw_mode();
     exit(0);
   }
+  if(strcmp(file[1], ".") == 0) {
+    start_browsing();
+  }
+  else {
+    init_editor();
+    open_editor(file[1]);
+    enable_raw_mode();
+    mark_all_lines_dirty();
+    draw_editor();
+    editor_key_press();
 
-  init_editor();
-  open_editor(file[1]);
-  enable_raw_mode();
-  mark_all_lines_dirty();
-  draw_editor();
-  editor_key_press();
+    ansi_emit(ANSI_CURSOR_SHOW);
+    free_editor();
+    disable_raw_mode();
+    ansi_emit(ANSI_CLEAR);
+  }
 
-  ansi_emit(ANSI_CURSOR_SHOW);
-  free_editor();
-  disable_raw_mode();
-  ansi_emit(ANSI_CLEAR);
   return 0;
 }
