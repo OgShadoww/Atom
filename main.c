@@ -255,7 +255,7 @@ int is_motion(char c) {
     case 'k':
       return 1;
       break;
-    case 'h':
+    case ' ':
       return 1;
       break;
     case 'l':
@@ -289,6 +289,20 @@ void execute_operator(int count, char c) {
   switch (c) {
     case 'd': for(int i = 0; i < count; i++) delete_line(); break;
   }
+}
+
+void draw_status_bar() {
+  char status_bar[Win.width];
+  int padding = Win.width > 20 ? 10 : 0;
+  
+  for(int i = 0; i < Win.width; i++) {
+    status_bar[i] = '-';
+  }
+  printf("\033[30;107m");
+  fflush(stdout);
+  write(STDOUT_FILENO, status_bar, Win.width);
+  printf("\033[0m\n");
+  fflush(stdout);
 }
 
 // ===============================
@@ -429,13 +443,14 @@ void draw_editor() {
   // Writing status bar
   dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height - 1);
   write(STDOUT_FILENO, "\033[2K", 4);
-  if(Buff.prefix.count > 0) {
-    int padding = Win.width - strlen(Buff.file_name) - 20;
-    dprintf(STDOUT_FILENO,"%s\t%d,%d%*s%d", Buff.file_name, Buff.cursor.y + 1, Buff.cursor.x + 1, padding, "", Buff.prefix.count);
-  }
-  else {
-    dprintf(STDOUT_FILENO,"%s\t%d,%d", Buff.file_name, Buff.cursor.y + 1, Buff.cursor.x + 1);
-  }
+  draw_status_bar();
+  //if(Buff.prefix.count > 0) {
+    //int padding = Win.width - strlen(Buff.file_name) - 20;
+    //dprintf(STDOUT_FILENO,"%s\t%d,%d%*s%d", Buff.file_name, Buff.cursor.y + 1, Buff.cursor.x + 1, padding, "", Buff.prefix.count);
+  //}
+  //else {
+    //dprintf(STDOUT_FILENO,"%s\t%d,%d", Buff.file_name, Buff.cursor.y + 1, Buff.cursor.x + 1);
+  //}
 
   // Writing command message
   if(Buff.status_len > 0) {
@@ -953,6 +968,7 @@ void editor_key_press() {
 
 int main(int arg, char **file) {
   ansi_emit(ANSI_CLEAR);
+  ansi_emit(ANSI_CURSOR_HOME);
   create_window();
   enable_raw_mode();
 

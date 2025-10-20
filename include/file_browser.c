@@ -32,11 +32,15 @@ typedef struct {
   char current_path[PATH_LEN];
 } FileBrowser;
 
+enum AnsiCode;
+
 // ===============================
 // GLOBAL 
 // ===============================
 
 FileBrowser Browser = {0};
+void ansi_emit(enum AnsiCode code);
+
 
 // ===============================
 // File Browser
@@ -88,6 +92,15 @@ void init_file_browser() {
 
 void free_file_browser() {
  free(Browser.entries); 
+}
+
+void draw_browser() {
+  char line[56] = "========================================================";
+  //ansi_emit(ANSI_CLEAR);
+}
+
+void handle_browsing() {
+
 }
 
 void start_browsing() {
