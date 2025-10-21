@@ -98,7 +98,7 @@ typedef struct {
   char *file_name;
   char pending_escape_char;
   int has_pending_escape;
-  char status_msg[128]; // Change for Line
+  char status_msg[128];
   int status_len;
 } Buffer;
 
@@ -255,7 +255,7 @@ int is_motion(char c) {
     case 'k':
       return 1;
       break;
-    case ' ':
+    case 'h':
       return 1;
       break;
     case 'l':
@@ -292,19 +292,8 @@ void execute_operator(int count, char c) {
 }
 
 void draw_status_bar() {
-  char status_bar[Win.width];
-  int padding = Win.width > 20 ? 10 : 0;
-  
-  for(int i = 0; i < Win.width; i++) {
-    status_bar[i] = '-';
-  }
-  printf("\033[30;107m");
-  fflush(stdout);
-  write(STDOUT_FILENO, status_bar, Win.width);
-  printf("\033[0m\n");
-  fflush(stdout);
-}
 
+}
 // ===============================
 // BUFFER MANAGEMENT
 // ===============================
@@ -391,18 +380,31 @@ void open_editor(char *filen) {
     exit(0);
   }
 
-  char buffer[128];
+  char buffer[512];
   Buff.document_size = 0;
   while (fgets(buffer, sizeof(buffer), file)) {  
     ensure_document_capacity();
-    Buff.document[Buff.document_size].size = strlen(buffer);
-    Buff.document[Buff.document_size].line = malloc(Buff.document[Buff.document_size].size +1);
+
+    int len = strlen(buffer);
+    if (len > 0 && buffer[len - 1] == '\n') {
+      buffer[len - 1] = '\0';
+      len--;
+    }
+    if (len > 0 && buffer[len - 1] == '\r') {
+      buffer[len - 1] = '\0';
+      len--;
+    }
+
+    Buff.document[Buff.document_size].size = len;
+    Buff.document[Buff.document_size].line = malloc(len +1);
     Buff.document[Buff.document_size].is_dirty = 1;
+
     if(!Buff.document[Buff.document_size].line) {
       perror("Malloc buffer line failled");
       fclose(file);
       return;
     }
+
     strcpy(Buff.document[Buff.document_size].line, buffer);
     Buff.document_size++;
   }
@@ -444,15 +446,8 @@ void draw_editor() {
   dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height - 1);
   write(STDOUT_FILENO, "\033[2K", 4);
   draw_status_bar();
-  //if(Buff.prefix.count > 0) {
-    //int padding = Win.width - strlen(Buff.file_name) - 20;
-    //dprintf(STDOUT_FILENO,"%s\t%d,%d%*s%d", Buff.file_name, Buff.cursor.y + 1, Buff.cursor.x + 1, padding, "", Buff.prefix.count);
-  //}
-  //else {
-    //dprintf(STDOUT_FILENO,"%s\t%d,%d", Buff.file_name, Buff.cursor.y + 1, Buff.cursor.x + 1);
-  //}
 
-  // Writing command message
+    // Writing command message
   if(Buff.status_len > 0) {
     dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height);
     dprintf(STDOUT_FILENO, "%.*s", Buff.status_len, Buff.status_msg);
@@ -491,7 +486,7 @@ void append_char(char c) {
   if (!Buff.document[Buff.cursor.y].line) { perror("realloc"); exit(1); }
   Buff.document[Buff.cursor.y].is_dirty = 1;
 
-  for(int i = original_size - 1; i >= insert_pos; i--) {
+  for(int i = original_size; i >= insert_pos; i--) {
     Buff.document[Buff.cursor.y].line[i + 1] = Buff.document[Buff.cursor.y].line[i];
   }
   
@@ -502,10 +497,10 @@ void append_char(char c) {
 void append_line() {
   if (Buff.document_size == 0) {
     ensure_document_capacity();
-    Buff.document[0].size = 1;
+    Buff.document[0].size = 0;
     Buff.document[0].line = malloc(1);
     if (!Buff.document[0].line) { perror("malloc"); exit(1); }
-    Buff.document[0].line[1] = '\0';
+    Buff.document[0].line[0] = '\0';
     Buff.document[0].is_dirty = 1;
     Buff.document_size = 1;
     Buff.cursor.x = 0;
@@ -528,6 +523,7 @@ void append_line() {
   }
 
   int remaining_size = content_size - split_pos;
+  if (remaining_size < 0) remaining_size = 0;
   
   Buff.document[current_line + 1].size = remaining_size;
   Buff.document[current_line + 1].line = malloc(remaining_size + 1);
@@ -539,21 +535,20 @@ void append_line() {
            remaining_size);
   }
   Buff.document[current_line + 1].line[remaining_size] = '\0';
+  Buff.document[current_line + 1].is_dirty = 1;
 
-  Buff.document[current_line].size = split_pos + 1;
-  Buff.document[current_line].line = realloc(Buff.document[current_line].line, split_pos + 2);
+  Buff.document[current_line].size = split_pos;
+  Buff.document[current_line].line = realloc(Buff.document[current_line].line, split_pos + 1);
   if(!Buff.document[current_line].line) { perror("realloc"); exit(1); };
-  Buff.document[current_line].line[split_pos] = '\n';
-  Buff.document[current_line].line[split_pos + 1] = '\0';
-
-  Buff.document[current_line].is_dirty = 1;
-  Buff.document[current_line - 1].is_dirty = 1;
+  Buff.document[current_line].line[split_pos] = '\0';
+  Buff.document[current_line].is_dirty = 1;  
 
   Buff.document_size++;
   move_cursor_verticaly(1);
   Buff.cursor.x = 0;
   Buff.cursor.desired_x = 0;
 
+  mark_all_lines_dirty();
   draw_editor();
 }
 
@@ -566,11 +561,8 @@ void delete_char() {
         int current_pos = Buff.cursor.y;
         int current_size = Buff.document[current_pos].size;
         int previous_size = Buff.document[current_pos - 1].size;
-
         int previous_content_size = previous_size;
-        if(previous_size > 0 && Buff.document[current_pos - 1].line[previous_size - 1] == '\n') {
-          previous_content_size = previous_size - 1;
-        }
+
   
         Buff.document[current_pos - 1].size = previous_content_size + current_size;
   
@@ -597,8 +589,12 @@ void delete_char() {
         move_cursor_verticaly(-1);
         Buff.cursor.x = previous_content_size;
         Buff.cursor.desired_x = previous_content_size;
+
       }    
     }
+
+    ansi_emit(ANSI_CLEAR);
+    mark_all_lines_dirty();
     return;
   } 
 
@@ -632,7 +628,6 @@ void delete_line() {
   }
 
   Buff.document_size--;
-  mark_all_lines_dirty();
   Buff.cursor.x = 0;
   Buff.cursor.desired_x = 0;
   if(Buff.cursor.y >= Buff.document_size) {
@@ -641,6 +636,8 @@ void delete_line() {
   if(Buff.cursor.y <= 1) {
     move_cursor_horizontaly(-Buff.document_size);
   }
+  mark_all_lines_dirty();
+  ansi_emit(ANSI_CLEAR);
   draw_editor();
 }
 
@@ -649,9 +646,9 @@ void delete_line() {
 // ===============================
 
 void move_cursor_horizontaly(int direction) {
-  if (Buff.document_size <= 0) return;  
+  if (Buff.document_size <= 0) return;
   
-  int doc_x = clamp(Buff.cursor.x + direction, 0, Buff.document[Buff.cursor.y].size - 1);
+  int doc_x = clamp(Buff.cursor.x + direction, 0, Buff.document[Buff.cursor.y].size);
   Buff.cursor.desired_x = doc_x;
   Buff.cursor.x = doc_x;
 
@@ -832,6 +829,7 @@ void handle_inserting_input(char c) {
 }
 
 void exit_inserting_mode() {
+  clear_command_status();
   enter_viewing_mode();
 }
 
@@ -923,6 +921,7 @@ void cmd_save_file(void) {
   
   for (int i = 0; i < Buff.document_size; i++) {
     fputs(Buff.document[i].line, file);
+    fputc('\n', file);
   }
   
   fclose(file);
