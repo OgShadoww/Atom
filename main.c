@@ -18,6 +18,7 @@ typedef enum {
   MODE_VIEW,
   MODE_INSERT,
   MODE_COMMAND,
+  MODE_BROWSER
 } EditorMode;
 
 enum Key {
@@ -154,6 +155,7 @@ void editor_key_press(void);
 // External
 void start_menu(int win_h, int win_w);
 void start_browsing();
+void handle_browser_input(char c);
 
 // ----------
 // HELPERS
@@ -214,7 +216,6 @@ void set_command_status(const char* s) {
   size_t buffer_size = sizeof(Buff.status_msg);
   
   size_t copy_len = (s_len < buffer_size - 1) ? s_len : buffer_size - 1;
-  
   memcpy(Buff.status_msg, s, copy_len);
   Buff.status_msg[copy_len] = '\0';
   Buff.status_len = copy_len;
@@ -961,6 +962,8 @@ void editor_key_press() {
       case MODE_COMMAND:
         handle_command_input(c);
         break;
+      case MODE_BROWSER:
+        handle_browser_input(c);
     }
   }
 }
@@ -978,7 +981,9 @@ int main(int arg, char **file) {
     exit(0);
   }
   if(strcmp(file[1], ".") == 0) {
+    Buff.mode = MODE_BROWSER;
     start_browsing();
+    editor_key_press();
   }
   else {
     init_editor();

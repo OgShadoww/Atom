@@ -32,15 +32,14 @@ typedef struct {
   char current_path[PATH_LEN];
 } FileBrowser;
 
-enum AnsiCode;
+void end_browsing();
+void cmd_quit(void);
 
 // ===============================
 // GLOBAL 
 // ===============================
 
 FileBrowser Browser = {0};
-void ansi_emit(enum AnsiCode code);
-
 
 // ===============================
 // File Browser
@@ -56,19 +55,40 @@ FileEntry *load_all_entries(char *path, int *total_count) {
   // Dynamic array
   int capacity = 32;
   int count = 0;
-  FileEntry *entries = malloc(sizeof(FileEntry) * capacity);
+  FileEntry *entries = calloc(capacity, sizeof(FileEntry));
+  if(!entries) {
+    closedir(dir);
+    return NULL;
+  }
 
   struct dirent *entry;
 
   while((entry = readdir(dir)) != NULL) {
-    if(strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
-      continue;
-    }
-
     if(count >= capacity) {
       capacity *= 2; 
-      entries = realloc(entries, sizeof(FileEntry) * capacity);
+      FileEntry *tmp = realloc(entries, sizeof(FileEntry) * capacity);
+      if(!tmp) {
+        for(int i = 0; i < count; i++) {
+          free(entries[i].name);
+          free(entries[i].full_path);
+        }
+        free(entries);
+        closedir(dir);
+        return NULL;
+      }
+      entries = tmp;
+      memset(&entries[count], 0, (capacity - count) * sizeof(FileEntry));
     }
+
+    char full_path[PATH_LEN];
+    snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
+
+    struct stat st;
+    if(stat(full_path, &st) == 0) {
+      entries[count].type = S_ISDIR(st.st_mode) ? ENTRY_DIR : ENTRY_FILE;
+      entries[count].size = st.st_size;
+    }
+    entries[count].full_path = strdup(full_path);
 
     entries[count].name = strdup(entry->d_name);
 
@@ -76,7 +96,6 @@ FileEntry *load_all_entries(char *path, int *total_count) {
   }
 
   closedir(dir);
-  dir = NULL;
   *total_count = count;
 
   return entries; 
@@ -91,25 +110,39 @@ void init_file_browser() {
 }
 
 void free_file_browser() {
- free(Browser.entries); 
+  for(int i = 0; i < Browser.count; i++) {
+    free(Browser.entries[i].name);
+    free(Browser.entries[i].full_path);
+  }
+  free(Browser.entries);
 }
 
 void draw_browser() {
-  char line[56] = "========================================================";
-  //ansi_emit(ANSI_CLEAR);
-}
+  char line[56] = "=======================================================";
+  dprintf(STDOUT_FILENO, "\" %s\n", line);
+  dprintf(STDOUT_FILENO, "\" Directory listening\n");
+  dprintf(STDOUT_FILENO, "\"   %s\n", Browser.current_path);
 
-void handle_browsing() {
-
-}
-
-void start_browsing() {
-  init_file_browser();
+  dprintf(STDOUT_FILENO, "\" %s\n", line);
   for(int i = 0; i < Browser.count; i++) {
     write(STDOUT_FILENO, Browser.entries[i].name, strlen(Browser.entries[i].name));
     write(STDOUT_FILENO, "\n", 1);
   }
+}
 
+void handle_browser_input(char c) {
+
+  switch (c) {
+    case 'q': end_browsing(); break;
+  } 
+}
+
+void start_browsing() {
+  init_file_browser();
+  draw_browser();
+}
+
+void end_browsing() {
   free_file_browser(); 
-  return;
+  cmd_quit();
 }
