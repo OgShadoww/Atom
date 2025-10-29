@@ -28,12 +28,22 @@ typedef struct {
 typedef struct {
   FileEntry *entries;
   int count;
+  int offset;
   int selected;
   char current_path[PATH_LEN];
 } FileBrowser;
 
+typedef struct {
+  int width;
+  int height;
+  int scroll_y;
+} Window;
+
+extern Window Win;
+
 void end_browsing();
 void cmd_quit(void);
+int  clamp(int v, int lo, int hi);
 
 // ===============================
 // GLOBAL 
@@ -101,6 +111,10 @@ FileEntry *load_all_entries(char *path, int *total_count) {
   return entries; 
 }
 
+void select_entry(int direction) {
+  Browser.selected = clamp(Browser.selected + direction, 0, Browser.count - 1);
+}
+
 void init_file_browser() {
   char path[128];
   if(getcwd(path, sizeof(path)) == NULL) perror("getcwd() error");
@@ -118,6 +132,9 @@ void free_file_browser() {
 }
 
 void draw_browser() {
+  dprintf(STDOUT_FILENO, "\033[2J");
+  dprintf(STDOUT_FILENO, "\033[%d;1H\033[2K", 1);
+
   char line[56] = "=======================================================";
   dprintf(STDOUT_FILENO, "\" %s\n", line);
   dprintf(STDOUT_FILENO, "\" Directory listening\n");
@@ -125,19 +142,51 @@ void draw_browser() {
 
   dprintf(STDOUT_FILENO, "\" %s\n", line);
   for(int i = 0; i < Browser.count; i++) {
-    write(STDOUT_FILENO, Browser.entries[i].name, strlen(Browser.entries[i].name));
-    write(STDOUT_FILENO, "\n", 1);
+    if(i == Browser.selected) {
+      // Underline the entire line
+      write(STDOUT_FILENO, "\033[4m", 4);
+      
+      // Print entry name with prefix
+      if(Browser.entries[i].type == ENTRY_DIR) {
+        dprintf(STDOUT_FILENO, "  %s/", Browser.entries[i].name);
+      } else {
+        dprintf(STDOUT_FILENO, "  %s", Browser.entries[i].name);
+      }
+      
+      // Fill rest of line with spaces to extend underline
+      int name_len = strlen(Browser.entries[i].name) + 2;
+      if(Browser.entries[i].type == ENTRY_DIR) name_len++;
+      
+      for(int j = name_len; j < 30; j++) {
+        write(STDOUT_FILENO, " ", 1);
+      }
+      
+      write(STDOUT_FILENO, "\033[24m", 5); // Turn off underline
+      write(STDOUT_FILENO, "\n", 1);
+    }
+    else {
+      // Regular entry
+      if(Browser.entries[i].type == ENTRY_DIR) {
+        dprintf(STDOUT_FILENO, "  %s/\n", Browser.entries[i].name);
+      } else {
+        dprintf(STDOUT_FILENO, "  %s\n", Browser.entries[i].name);
+      }
+    }
   }
+
+  int cursor_y = Browser.selected - Browser.offset + 5;
+  dprintf(STDOUT_FILENO, "\033[%d;%dH", cursor_y, 1);
 }
 
 void handle_browser_input(char c) {
-
   switch (c) {
     case 'q': end_browsing(); break;
+    case 'j': select_entry(1); draw_browser(); break;
+    case 'k': select_entry(-1); draw_browser(); break;
   } 
 }
 
-void start_browsing() {
+void start_browsing(int width, int height) {
   init_file_browser();
   draw_browser();
 }

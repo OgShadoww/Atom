@@ -154,7 +154,7 @@ void editor_key_press(void);
 
 // External
 void start_menu(int win_h, int win_w);
-void start_browsing();
+void start_browsing(int width, int height);
 void handle_browser_input(char c);
 
 // ----------
@@ -982,7 +982,7 @@ int main(int arg, char **file) {
   }
   if(strcmp(file[1], ".") == 0) {
     Buff.mode = MODE_BROWSER;
-    start_browsing();
+    start_browsing(Win.width, Win.height);
     editor_key_press();
   }
   else {
