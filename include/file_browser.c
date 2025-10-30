@@ -143,32 +143,30 @@ void draw_browser() {
   dprintf(STDOUT_FILENO, "\" %s\n", line);
   for(int i = 0; i < Browser.count; i++) {
     if(i == Browser.selected) {
-      // Underline the entire line
       write(STDOUT_FILENO, "\033[4m", 4);
       
-      // Print entry name with prefix
       if(Browser.entries[i].type == ENTRY_DIR) {
         dprintf(STDOUT_FILENO, "  %s/", Browser.entries[i].name);
-      } else {
+      } 
+      else {
         dprintf(STDOUT_FILENO, "  %s", Browser.entries[i].name);
       }
       
-      // Fill rest of line with spaces to extend underline
       int name_len = strlen(Browser.entries[i].name) + 2;
       if(Browser.entries[i].type == ENTRY_DIR) name_len++;
       
-      for(int j = name_len; j < 30; j++) {
+      for(int j = name_len; j < Win.width; j++) {
         write(STDOUT_FILENO, " ", 1);
       }
       
-      write(STDOUT_FILENO, "\033[24m", 5); // Turn off underline
+      write(STDOUT_FILENO, "\033[24m", 5);
       write(STDOUT_FILENO, "\n", 1);
     }
     else {
-      // Regular entry
       if(Browser.entries[i].type == ENTRY_DIR) {
         dprintf(STDOUT_FILENO, "  %s/\n", Browser.entries[i].name);
-      } else {
+      } 
+      else {
         dprintf(STDOUT_FILENO, "  %s\n", Browser.entries[i].name);
       }
     }
@@ -187,6 +185,8 @@ void handle_browser_input(char c) {
 }
 
 void start_browsing(int width, int height) {
+  Win.width = width;
+  Win.height = height;
   init_file_browser();
   draw_browser();
 }
