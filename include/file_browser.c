@@ -11,6 +11,8 @@
 // DATA STRUCTURES
 // ===============================
 
+#define KEY_ENTER 10
+
 typedef enum {
   ENTRY_FILE,
   ENTRY_DIR,
@@ -140,16 +142,18 @@ void draw_browser() {
   dprintf(STDOUT_FILENO, "\" Directory listening\n");
   dprintf(STDOUT_FILENO, "\"   %s\n", Browser.current_path);
 
+  int end_point = Browser.count <= Win.height ? Browser.count : Win.height + Win.scroll_y;
+
   dprintf(STDOUT_FILENO, "\" %s\n", line);
-  for(int i = 0; i < Browser.count; i++) {
+  for(int i = Win.scroll_y; i < end_point; i++) {
     if(i == Browser.selected) {
       write(STDOUT_FILENO, "\033[4m", 4);
       
       if(Browser.entries[i].type == ENTRY_DIR) {
-        dprintf(STDOUT_FILENO, "  %s/", Browser.entries[i].name);
+        dprintf(STDOUT_FILENO, "%s/", Browser.entries[i].name);
       } 
       else {
-        dprintf(STDOUT_FILENO, "  %s", Browser.entries[i].name);
+        dprintf(STDOUT_FILENO, "%s", Browser.entries[i].name);
       }
       
       int name_len = strlen(Browser.entries[i].name) + 2;
@@ -164,10 +168,10 @@ void draw_browser() {
     }
     else {
       if(Browser.entries[i].type == ENTRY_DIR) {
-        dprintf(STDOUT_FILENO, "  %s/\n", Browser.entries[i].name);
+        dprintf(STDOUT_FILENO, "%s/\n", Browser.entries[i].name);
       } 
       else {
-        dprintf(STDOUT_FILENO, "  %s\n", Browser.entries[i].name);
+        dprintf(STDOUT_FILENO, "%s\n", Browser.entries[i].name);
       }
     }
   }
@@ -179,6 +183,7 @@ void draw_browser() {
 void handle_browser_input(char c) {
   switch (c) {
     case 'q': end_browsing(); break;
+    case KEY_ENTER: break;
     case 'j': select_entry(1); draw_browser(); break;
     case 'k': select_entry(-1); draw_browser(); break;
   } 
