@@ -156,6 +156,7 @@ void editor_key_press(void);
 void start_menu(int win_h, int win_w);
 void start_browsing(int width, int height);
 void handle_browser_input(char c);
+void free_file_browser();
 
 // ----------
 // HELPERS
@@ -569,7 +570,7 @@ void delete_char() {
   
         Buff.document[current_pos - 1].line = realloc(Buff.document[current_pos - 1].line, previous_content_size + current_size + 1);
         if(!Buff.document[current_pos - 1].line) { perror("realloc"); exit(1); };
-        Buff.document[current_size - 1].is_dirty = 1;
+        Buff.document[current_pos - 1].is_dirty = 1;
   
         memcpy(
           &Buff.document[current_pos - 1].line[previous_content_size],
@@ -968,6 +969,15 @@ void editor_key_press() {
   }
 }
 
+void start_buffer(char *filepath) {
+  init_editor();
+  open_editor(filepath);
+  Buff.mode = MODE_VIEW;
+  mark_all_lines_dirty();
+  draw_editor();
+  editor_key_press();
+}
+
 int main(int arg, char **file) {
   ansi_emit(ANSI_CLEAR);
   ansi_emit(ANSI_CURSOR_HOME);
@@ -984,20 +994,16 @@ int main(int arg, char **file) {
     Buff.mode = MODE_BROWSER;
     start_browsing(Win.width, Win.height);
     editor_key_press();
+    free_file_browser();
   }
   else {
-    init_editor();
-    open_editor(file[1]);
-    enable_raw_mode();
-    mark_all_lines_dirty();
-    draw_editor();
-    editor_key_press();
-
-    ansi_emit(ANSI_CURSOR_SHOW);
+    start_buffer(file[1]);
     free_editor();
-    disable_raw_mode();
-    ansi_emit(ANSI_CLEAR);
   }
+
+  ansi_emit(ANSI_CURSOR_SHOW);
+  disable_raw_mode();
+  ansi_emit(ANSI_CLEAR);
 
   return 0;
 }

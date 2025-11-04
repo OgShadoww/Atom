@@ -115,6 +115,7 @@ FileEntry *load_all_entries(char *path, int *total_count) {
 
 void select_entry(int direction) {
   Browser.selected = clamp(Browser.selected + direction, 0, Browser.count - 1);
+  if(Browser.selected >= Win.height - 2) Win.scroll_y++;
 }
 
 void init_file_browser() {
@@ -142,7 +143,7 @@ void draw_browser() {
   dprintf(STDOUT_FILENO, "\" Directory listening\n");
   dprintf(STDOUT_FILENO, "\"   %s\n", Browser.current_path);
 
-  int end_point = Browser.count <= Win.height ? Browser.count : Win.height + Win.scroll_y;
+  int end_point = Browser.count <= Win.height ? Browser.count : Win.height + Win.scroll_y - 5;
 
   dprintf(STDOUT_FILENO, "\" %s\n", line);
   for(int i = Win.scroll_y; i < end_point; i++) {
