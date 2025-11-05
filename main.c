@@ -879,17 +879,22 @@ void handle_command_input(char c) {
 }
 
 void process_command_input(char *command) {
-  if (strcmp(command, "q") == 0) {
+  if(strcmp(command, "q") == 0) {
     cmd_quit();
   } 
-  else if (strcmp(command, "w") == 0) {
+  else if(strcmp(command, "w") == 0) {
     cmd_save_file();
     exit_command_mode();
   } 
-  else if (strcmp(command, "wq") == 0) {
+  else if(strcmp(command, "wq") == 0) {
     cmd_save_file();
     cmd_quit();
-  } 
+  }
+  else if(strcmp(command, "E") == 0) {
+    free_editor(); 
+    Buff.mode = MODE_BROWSER;
+    start_browsing(Win.width, Win.height);
+  }
   else {
     set_command_status("\033[1;31mError:\033[0m Command not found");
     exit_command_mode();
