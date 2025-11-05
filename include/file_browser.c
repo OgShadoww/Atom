@@ -118,10 +118,19 @@ void select_entry(int direction) {
   if(Browser.selected >= Win.height - 2) Win.scroll_y++;
 }
 
-void init_file_browser() {
+void init_file_browser(char *current_dir) {
   char path[128];
-  if(getcwd(path, sizeof(path)) == NULL) perror("getcwd() error");
-  strcpy(Browser.current_path, path);
+  if(current_dir != NULL) {
+    strcpy(Browser.current_path, current_dir);
+  }
+  else {
+    if(getcwd(path, sizeof(path)) == NULL) {
+      perror("getcwd() error");
+      return;
+    }
+    strcpy(Browser.current_path, path);
+  }
+
   Browser.entries = load_all_entries(Browser.current_path, &Browser.count);
   Browser.selected = 0;
 }
@@ -181,10 +190,20 @@ void draw_browser() {
   dprintf(STDOUT_FILENO, "\033[%d;%dH", cursor_y, 1);
 }
 
+void open_entry(FileEntry entry) {
+  if(entry.type == ENTRY_DIR) {
+    char new_path[PATH_LEN];
+    strcpy(new_path, entry.full_path);
+    
+    free_file_browser();
+    init_file_browser(new_path);
+    draw_browser();  }
+}
+
 void handle_browser_input(char c) {
   switch (c) {
     case 'q': end_browsing(); break;
-    case KEY_ENTER: break;
+    case KEY_ENTER: open_entry(Browser.entries[Browser.selected]); break;
     case 'j': select_entry(1); draw_browser(); break;
     case 'k': select_entry(-1); draw_browser(); break;
   } 
@@ -193,7 +212,7 @@ void handle_browser_input(char c) {
 void start_browsing(int width, int height) {
   Win.width = width;
   Win.height = height;
-  init_file_browser();
+  init_file_browser(NULL);
   draw_browser();
 }
 
