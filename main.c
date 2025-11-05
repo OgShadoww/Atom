@@ -280,10 +280,10 @@ void reset_prefix() {
 
 void execute_motion(int count, char c) {
   switch (c) {
-    case 'h': for(int i = 0; i < count; i++) move_cursor_horizontaly(-1); break;
-    case 'l': for(int i = 0; i < count; i++) move_cursor_horizontaly(1); break;
-    case 'j': for(int i = 0; i < count; i++) move_cursor_verticaly(1); break;
-    case 'k': for(int i = 0; i < count; i++) move_cursor_verticaly(-1); break; 
+    case 'h': move_cursor_horizontaly(-count); break;
+    case 'l': move_cursor_horizontaly(count); break;
+    case 'j': move_cursor_verticaly(count); break;
+    case 'k': move_cursor_verticaly(-count); break; 
   }  
 }
 

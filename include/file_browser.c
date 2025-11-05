@@ -45,7 +45,8 @@ extern Window Win;
 
 void end_browsing();
 void cmd_quit(void);
-int  clamp(int v, int lo, int hi);
+int clamp(int v, int lo, int hi);
+void start_buffer(char *filepath);
 
 // ===============================
 // GLOBAL 
@@ -197,7 +198,15 @@ void open_entry(FileEntry entry) {
     
     free_file_browser();
     init_file_browser(new_path);
-    draw_browser();  }
+    draw_browser();  
+  }
+  else if(entry.type == ENTRY_FILE) {
+    char filepath[PATH_LEN];
+    strcpy(filepath, entry.full_path);
+
+    free_file_browser();
+    start_buffer(filepath);
+  }
 }
 
 void handle_browser_input(char c) {
