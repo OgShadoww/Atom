@@ -975,6 +975,7 @@ void editor_key_press() {
 }
 
 void start_buffer(char *filepath) {
+  ansi_emit(ANSI_CLEAR);
   init_editor();
   open_editor(filepath);
   Buff.mode = MODE_VIEW;
