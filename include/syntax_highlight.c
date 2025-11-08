@@ -10,16 +10,21 @@ typedef enum {
     COLOR_MAGENTA,
     COLOR_CYAN,
     COLOR_WHITE
-} Color;
+} Colors;
 
 void set_color(Color fg) {
 
 }
 
-void set_bg(Color bg) {
+void reset_color(void) {
 
 }
 
-void reset_color(void) {
-
+char *highlight_line(char *line) {
+  char *highlighted_line;
+  for(int i = 0; i < strlen(line); i++) {
+    if(isdigit(line[i])) {
+      
+    }
+  }
 }
