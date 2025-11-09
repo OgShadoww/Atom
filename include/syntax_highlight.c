@@ -12,19 +12,11 @@ typedef enum {
     COLOR_WHITE
 } Colors;
 
-void set_color(Color fg) {
-
-}
-
-void reset_color(void) {
-
-}
-
-char *highlight_line(char *line) {
-  char *highlighted_line;
-  for(int i = 0; i < strlen(line); i++) {
-    if(isdigit(line[i])) {
+//char *highlight_line(char *line) {
+  //char *highlighted_line;
+  //for(int i = 0; i < strlen(line); i++) {
+    //if(isdigit(line[i])) {
       
-    }
-  }
-}
+    //}
+  //}
+//}

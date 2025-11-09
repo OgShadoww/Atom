@@ -148,14 +148,9 @@ void draw_browser() {
   dprintf(STDOUT_FILENO, "\033[2J");
   dprintf(STDOUT_FILENO, "\033[%d;1H\033[2K", 1);
 
-  char line[56] = "=======================================================";
-  dprintf(STDOUT_FILENO, "\" %s\n", line);
-  dprintf(STDOUT_FILENO, "\" Directory listening\n");
-  dprintf(STDOUT_FILENO, "\"   %s\n", Browser.current_path);
+  int end_point = Browser.count <= Win.height ? Browser.count : Win.height + Win.scroll_y;
+  dprintf(STDOUT_FILENO, "\033[1;34m%s\033[0m\n", Browser.current_path);
 
-  int end_point = Browser.count <= Win.height ? Browser.count : Win.height + Win.scroll_y - 5;
-
-  dprintf(STDOUT_FILENO, "\" %s\n", line);
   for(int i = Win.scroll_y; i < end_point; i++) {
     if(i == Browser.selected) {
       write(STDOUT_FILENO, "\033[4m", 4);
@@ -187,7 +182,7 @@ void draw_browser() {
     }
   }
 
-  int cursor_y = Browser.selected - Browser.offset + 5;
+  int cursor_y = Browser.selected - Browser.offset + 2;
   dprintf(STDOUT_FILENO, "\033[%d;%dH", cursor_y, 1);
 }
 
