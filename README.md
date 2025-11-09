@@ -9,15 +9,6 @@ This project is an exercise in building a terminal application from scratch, han
 
 ---
 
-## Features
-
-- **Modal Workflow**: Switch between different modes for efficient text manipulation (Viewing, Inserting, Command).
-- **Terminal-Native UI**: Renders its interface using ANSI escape sequences, ensuring it runs in most POSIX-compliant terminals without needing libraries like ncurses.
-- **File Manipulation**: Open, display, and edit plain-text files directly in the terminal.
-- **Status Bar**: Displays the current file name, cursor line, and column number.
-- **Vim-like Controls**: Uses `hjkl` keys for navigation, providing a familiar experience for users of modal editors.
-- **Startup Menu**: Presents a menu when launched without a file argument.
-
 ## Project Structure
 
 ```
@@ -40,8 +31,8 @@ raw-mode configuration via `termios` and a small set of ANSI escape sequences.
 
 ### Prerequisites
 
-- A C11-compatible compiler (e.g., GCC or Clang)
-- A POSIX-compliant environment (Linux, macOS, WSL, etc.)
+- A C11-compatible compiler (GCC or Clang)
+- A POSIX-compliant environment (Linux, macOS, etc)
 - `make` for building the project
 
 ### Build
@@ -79,12 +70,3 @@ If you run the editor without any arguments, it will start with an empty buffer 
 | `:w` + `Enter`   | Command  | Save the file                 |
 | `:q` + `Enter`   | Command  | Quit the editor               |
 | `:wq` + `Enter`  | Command  | Save and quit the editor      |
-
-
-## Contributing
-
-Pull requests and issue reports are welcome. Key areas for contribution include improving buffer management, expanding the set of available commands, and enhancing the rendering loop.
-
-## License
-
-This project is distributed under the MIT License. See [`LICENSE`](LICENSE) for more details.
