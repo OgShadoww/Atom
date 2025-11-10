@@ -157,6 +157,7 @@ void start_menu(int win_h, int win_w);
 void start_browsing(int width, int height);
 void handle_browser_input(char c);
 void free_file_browser();
+void syntax_highlight_and_print(char *line, int size);
 
 // ----------
 // HELPERS
@@ -439,7 +440,8 @@ void draw_editor() {
   for(int i = start_line; i < end_line && i < Buff.document_size; i++) {
     if(Buff.document[i].is_dirty) {
       dprintf(STDOUT_FILENO, "\033[%d;1H\033[2K", i - Win.scroll_y + 1);
-      write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
+      syntax_highlight_and_print(Buff.document[i].line, Buff.document[i].size);
+      //write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
       Buff.document[i].is_dirty = 0;
     }
   }
