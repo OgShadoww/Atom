@@ -18,6 +18,7 @@ typedef enum {
   MODE_VIEW,
   MODE_INSERT,
   MODE_COMMAND,
+  MODE_MENU,
   MODE_BROWSER
 } EditorMode;
 
@@ -154,6 +155,7 @@ void editor_key_press(void);
 
 // External
 void start_menu(int win_h, int win_w);
+void handle_menu_input(char c);
 void start_browsing(int width, int height);
 void handle_browser_input(char c);
 void free_file_browser();
@@ -972,6 +974,8 @@ void editor_key_press() {
         break;
       case MODE_BROWSER:
         handle_browser_input(c);
+      case MODE_MENU:
+        handle_menu_input(c);
     }
   }
 }
@@ -994,7 +998,9 @@ int main(int arg, char **file) {
 
   if (arg < 2) {
     ansi_emit(ANSI_CLEAR);
+    Buff.mode = MODE_MENU;
     start_menu(Win.height, Win.width); 
+    editor_key_press();
     disable_raw_mode();
     exit(0);
   }

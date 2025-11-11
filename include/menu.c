@@ -2,6 +2,8 @@
 #include <string.h>
 #include <unistd.h>
 
+void cmd_quit();
+
 const char *welcome_lines[11] = {
   "\033[38;2;255;120;70m原子\033[0m\n",
   "Atom Terminal Text Editor\n",
@@ -46,6 +48,13 @@ void print_menu(int win_h, int win_w) {
   }
     
   dprintf(STDOUT_FILENO, "\033[%d;1H", win_h);
+}
+
+
+void handle_menu_input(char c) {
+  switch(c) {
+    case 'q': cmd_quit(); break; 
+  }
 }
 
 void start_menu(int win_h, int win_w) {
