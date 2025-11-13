@@ -132,7 +132,6 @@ void syntax_highlight_and_print(char *line, int size) {
       print_colored_token(line + token_start, token_len, type);
       continue;
     }
-
     // Handle comments
     if(token_start + 1 < size && line[token_start] == '/' && line[token_start + 1] == '/') {
       type = TOKEN_COMMENT;
@@ -140,21 +139,15 @@ void syntax_highlight_and_print(char *line, int size) {
       
       print_colored_token(line + token_start, token_len, type);
       break;
-    }
-    
+    } 
     // Handle numbers
     if(isdigit(line[pos])) {
       type = TOKEN_NUMBER;
-
-      while(pos < size && (isdigit(line[pos]) || line[pos] == '.' || tolower(line[pos]) == 'f' || tolower(line[pos]) == 'x')) {
-        pos++;  
-      }
-      
+      while(pos < size && (isdigit(line[pos]) || line[pos] == '.' || tolower(line[pos]) == 'f' || tolower(line[pos]) == 'x')) pos++;  
       token_len = pos - token_start;
       print_colored_token(line + token_start, token_len, type);
       continue;
     }
-
     // Handle words: Keywords, types, operators, preprocessor
     if(isalnum(line[pos]) || line[pos] == '_' || line[pos] == '#') {
       // Handle preprocessor
@@ -175,7 +168,6 @@ void syntax_highlight_and_print(char *line, int size) {
       print_colored_token(line + token_start, token_len, type);
       continue;
     }
-
     // Handle OPERATORS and PUNCTUATION
     write(STDOUT_FILENO, &line[pos], 1);
     pos++;
