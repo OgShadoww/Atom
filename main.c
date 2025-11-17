@@ -48,6 +48,9 @@ enum AnsiCode {
   ANSI_CURSOR_BLOCK,
   ANSI_CURSOR_BAR,
   ANSI_CUROSR_UNDERLINE,
+  ANSI_BG_DEFAULT,
+  BG_LINE_NUMBER,
+  BG_STATUS_BAR
 };
 
 const char *ansi_codes[] = {  
@@ -59,7 +62,12 @@ const char *ansi_codes[] = {
   [ANSI_ERASE_CHARACTER] = "\b \b",
   [ANSI_CURSOR_BLOCK] = "\033[2 q",
   [ANSI_CURSOR_BAR] = "\033[6 q",
-  [ANSI_CUROSR_UNDERLINE] = "\033[4 q"
+  [ANSI_CUROSR_UNDERLINE] = "\033[4 q",
+
+  [ANSI_BG_DEFAULT] = "\033[48;2;40;42;54m",     // Dracula background
+  [BG_LINE_NUMBER] = "\033[48;2;68;71;90m",     // Lighter gray
+  [BG_STATUS_BAR] = "\033[48;2;68;71;90m",     // Gray bar
+
 };
 
 // ===============================
@@ -432,6 +440,7 @@ void create_window() {
 
 void draw_editor() {
   ansi_emit(ANSI_CURSOR_HIDE);
+  //write(STDOUT_FILENO, ansi_codes[ANSI_BG_DEFAULT], strlen(ansi_codes[ANSI_BG_DEFAULT]));
 
   // Render
   int max_lines = Win.height - 2;
@@ -447,7 +456,7 @@ void draw_editor() {
       Buff.document[i].is_dirty = 0;
     }
   }
-  
+
   // Writing status bar
   dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height - 1);
   write(STDOUT_FILENO, "\033[2K", 4);
@@ -458,6 +467,8 @@ void draw_editor() {
     dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height);
     dprintf(STDOUT_FILENO, "%.*s", Buff.status_len, Buff.status_msg);
   }
+
+  //write(STDOUT_FILENO, "\033[0m", 4);
   
   // Showing cursor
   int screen_y = Buff.cursor.y - Win.scroll_y + 1;

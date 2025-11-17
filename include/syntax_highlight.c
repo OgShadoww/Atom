@@ -14,23 +14,34 @@ typedef enum {
   TOKEN_COMMENT,
   TOKEN_OPERATOR,
   TOKEN_IDENTIFIER,
-  TOKEN_UNKNOWN
+  TOKEN_FUNCTION,
+  TOKEN_BRACKET,
+  TOKEN_UNKNOWN,
+
+  BG_DEFAULT,
+  BG_LINE_NUMBER,
+  BG_STATUS_BAR
 } TokenType;
 
 const char *ansi_colors[] = {  
   [TOKEN_RESET]       = "\033[0m",
-  [TOKEN_KEYWORD]     = "\033[35m",       // Magenta
-  [TOKEN_TYPE]        = "\033[36m",       // Cyan
-  [TOKEN_PREPROCESSOR]= "\033[38;5;199m", // Pink
-  [TOKEN_CONSTANT]    = "\033[38;5;173m", // Light orange
-  [TOKEN_STRING]      = "\033[32m",       // Green
-  [TOKEN_NUMBER]      = "\033[38;5;208m", // Orange
-  [TOKEN_COMMENT]     = "\033[38;5;242m", // Gray
-  [TOKEN_OPERATOR]    = "\033[37m",       // White
-  [TOKEN_IDENTIFIER]  = NULL,             // No color (don't print anything)
-  [TOKEN_UNKNOWN]     = NULL,             // No color
+  [TOKEN_KEYWORD]     = "\033[38;2;249;38;114m",   // Hot Pink
+  [TOKEN_TYPE]        = "\033[38;2;102;217;239m",  // Cyan
+  [TOKEN_PREPROCESSOR]= "\033[38;2;102;217;239m",  // Cyan
+  [TOKEN_CONSTANT]    = "\033[38;2;174;129;255m",  // Purple
+  [TOKEN_STRING]      = "\033[38;2;230;219;116m",  // Yellow
+  [TOKEN_NUMBER]      = "\033[38;2;174;129;255m",  // Purple
+  [TOKEN_COMMENT]     = "\033[38;2;117;113;94m",   // Gray-Brown
+  [TOKEN_OPERATOR]    = "\033[38;2;249;38;114m",   // Hot Pink
+  [TOKEN_FUNCTION]    = "\033[38;2;166;226;46m",   // Green
+  [TOKEN_BRACKET]     = "\033[38;2;248;248;240m",  // White
+  [TOKEN_IDENTIFIER]  = "\033[38;2;248;248;240m",  // White
+  [TOKEN_UNKNOWN]     = "\033[38;2;248;248;240m",  // White
+  
+  [BG_DEFAULT]        = "\033[48;2;39;40;34m",     // Dark gray-brown
+  [BG_LINE_NUMBER]    = "\033[48;2;49;50;44m",     // Slightly lighter
+  [BG_STATUS_BAR]     = "\033[48;2;73;72;62m",     // Brownish gray
 };
-
 // Control flow and language keywords
 static const char *c_keywords[] = {
   "if", "else", "while", "for", "do", "switch", "case",
@@ -102,14 +113,20 @@ int classify_token(char *token, size_t size) {
 
 void print_colored_token(char *token, size_t size, int type) {
   const char *color = ansi_colors[type];
-
-  if(color != NULL) write(STDOUT_FILENO, color, strlen(color));
-  write(STDOUT_FILENO, token, size);
-  if(color != NULL) write(STDOUT_FILENO, ansi_colors[TOKEN_RESET], strlen(ansi_colors[TOKEN_RESET]));
+  
+  if(color != NULL) {
+    write(STDOUT_FILENO, color, strlen(color));
+    write(STDOUT_FILENO, token, size);
+    write(STDOUT_FILENO, "\033[39m", 5);  // Reset FG
+  } 
+  else {
+    write(STDOUT_FILENO, token, size);
+  }
 }
 
 void syntax_highlight_and_print(char *line, int size) {
   int pos = 0;
+  int after_include = 0;
 
   while(pos < size) {
     // Handle whitespaces
@@ -160,6 +177,10 @@ void syntax_highlight_and_print(char *line, int size) {
         while(pos < size && (isalnum(line[pos]) || line[pos] == '_')) {
           pos++;
         }
+      }
+
+      if(strncmp(line + token_start, "#include", 8) == 0) {
+        after_include = 1;  // Next < > should be colored
       }
       
       token_len = pos - token_start;
