@@ -114,8 +114,10 @@ FileEntry *load_all_entries(char *path, int *total_count) {
 }
 
 void select_entry(int direction) {
-  Browser.selected = clamp(Browser.selected + direction, 0, Browser.count - 3);
+  int max_size = Browser.count > Win.height ? Browser.count - 3 : Browser.count - 1;
+  Browser.selected = clamp(Browser.selected + direction, 0, max_size);
   if(Browser.selected - Win.scroll_y >= Win.height - 2 && Win.scroll_y <= Browser.count - Win.height - 1) Win.scroll_y++;
+  if(Browser.selected < Win.scroll_y) Win.scroll_y--;
 }
 
 void init_file_browser(char *current_dir) {
