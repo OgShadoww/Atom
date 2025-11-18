@@ -17,31 +17,24 @@ typedef enum {
   TOKEN_FUNCTION,
   TOKEN_BRACKET,
   TOKEN_UNKNOWN,
-
-  BG_DEFAULT,
-  BG_LINE_NUMBER,
-  BG_STATUS_BAR
 } TokenType;
 
 const char *ansi_colors[] = {  
   [TOKEN_RESET]       = "\033[0m",
-  [TOKEN_KEYWORD]     = "\033[38;2;249;38;114m",   // Hot Pink
-  [TOKEN_TYPE]        = "\033[38;2;102;217;239m",  // Cyan
-  [TOKEN_PREPROCESSOR]= "\033[38;2;102;217;239m",  // Cyan
-  [TOKEN_CONSTANT]    = "\033[38;2;174;129;255m",  // Purple
-  [TOKEN_STRING]      = "\033[38;2;230;219;116m",  // Yellow
-  [TOKEN_NUMBER]      = "\033[38;2;174;129;255m",  // Purple
-  [TOKEN_COMMENT]     = "\033[38;2;117;113;94m",   // Gray-Brown
-  [TOKEN_OPERATOR]    = "\033[38;2;249;38;114m",   // Hot Pink
-  [TOKEN_FUNCTION]    = "\033[38;2;166;226;46m",   // Green
-  [TOKEN_BRACKET]     = "\033[38;2;248;248;240m",  // White
-  [TOKEN_IDENTIFIER]  = "\033[38;2;248;248;240m",  // White
-  [TOKEN_UNKNOWN]     = "\033[38;2;248;248;240m",  // White
-  
-  [BG_DEFAULT]        = "\033[48;2;39;40;34m",     // Dark gray-brown
-  [BG_LINE_NUMBER]    = "\033[48;2;49;50;44m",     // Slightly lighter
-  [BG_STATUS_BAR]     = "\033[48;2;73;72;62m",     // Brownish gray
+  [TOKEN_KEYWORD]     = "\033[38;2;255;121;198m",  // Pink
+  [TOKEN_TYPE]        = "\033[38;2;139;233;253m",  // Cyan
+  [TOKEN_PREPROCESSOR]= "\033[38;2;241;250;140m",  // Yellow
+  [TOKEN_CONSTANT]    = "\033[38;2;189;147;249m",  // Purple
+  [TOKEN_STRING]      = "\033[38;2;241;250;140m",  // Yellow
+  [TOKEN_NUMBER]      = "\033[38;2;189;147;249m",  // Purple
+  [TOKEN_COMMENT]     = "\033[38;2;98;114;164m",   // Dark Blue-Gray
+  [TOKEN_OPERATOR]    = "\033[38;2;248;248;242m",  // White
+  [TOKEN_FUNCTION]    = "\033[38;2;80;250;123m",   // Green
+  [TOKEN_BRACKET]     = "\033[38;2;248;248;242m",  // White
+  [TOKEN_IDENTIFIER]  = "\033[38;2;248;248;242m",  // White
+  [TOKEN_UNKNOWN]     = "\033[38;2;248;248;242m",  // White}
 };
+
 // Control flow and language keywords
 static const char *c_keywords[] = {
   "if", "else", "while", "for", "do", "switch", "case",
@@ -117,7 +110,7 @@ void print_colored_token(char *token, size_t size, int type) {
   if(color != NULL) {
     write(STDOUT_FILENO, color, strlen(color));
     write(STDOUT_FILENO, token, size);
-    write(STDOUT_FILENO, "\033[39m", 5);  // Reset FG
+    write(STDOUT_FILENO, ansi_colors[TOKEN_RESET], strlen(ansi_colors[TOKEN_RESET]));
   } 
   else {
     write(STDOUT_FILENO, token, size);

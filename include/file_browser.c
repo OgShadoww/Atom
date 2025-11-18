@@ -30,7 +30,6 @@ typedef struct {
 typedef struct {
   FileEntry *entries;
   int count;
-  int offset;
   int selected;
   char current_path[PATH_LEN];
 } FileBrowser;
@@ -115,8 +114,8 @@ FileEntry *load_all_entries(char *path, int *total_count) {
 }
 
 void select_entry(int direction) {
-  Browser.selected = clamp(Browser.selected + direction, 0, Browser.count - 1);
-  if(Browser.selected >= Win.height - 2) Win.scroll_y++;
+  Browser.selected = clamp(Browser.selected + direction, 0, Browser.count - 3);
+  if(Browser.selected - Win.scroll_y >= Win.height - 2 && Win.scroll_y <= Browser.count - Win.height - 1) Win.scroll_y++;
 }
 
 void init_file_browser(char *current_dir) {
@@ -148,7 +147,7 @@ void draw_browser() {
   dprintf(STDOUT_FILENO, "\033[2J");
   dprintf(STDOUT_FILENO, "\033[%d;1H\033[2K", 1);
 
-  int end_point = Browser.count <= Win.height ? Browser.count : Win.height + Win.scroll_y;
+  int end_point = Browser.count <= Win.height ? Browser.count : Win.height + Win.scroll_y - 2;
   dprintf(STDOUT_FILENO, "\033[1;34m%s\033[0m\n", Browser.current_path);
 
   for(int i = Win.scroll_y; i < end_point; i++) {
@@ -182,7 +181,7 @@ void draw_browser() {
     }
   }
 
-  int cursor_y = Browser.selected - Browser.offset + 2;
+  int cursor_y = Browser.selected - Win.scroll_y + 2;
   dprintf(STDOUT_FILENO, "\033[%d;%dH", cursor_y, 1);
 }
 
@@ -216,6 +215,7 @@ void handle_browser_input(char c) {
 void start_browsing(int width, int height) {
   Win.width = width;
   Win.height = height;
+  Win.scroll_y = 0;
   init_file_browser(NULL);
   draw_browser();
 }
