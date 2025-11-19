@@ -156,9 +156,10 @@ void draw_browser() {
       perror("Malloc failled");
       exit(0);
     }
-    size_t start_pos = strlen(Browser.current_path) - Win.width;
+    size_t start_pos = strlen(Browser.current_path) - Win.width + 1;
     memcpy(temp_name, Browser.current_path + start_pos, Win.width);
     dprintf(STDOUT_FILENO, "\033[1;34m%s\033[0m\n", temp_name); 
+    free(temp_name);
   }
   else {
     dprintf(STDOUT_FILENO, "\033[1;34m%s\033[0m\n", Browser.current_path); 
