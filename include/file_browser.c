@@ -150,7 +150,19 @@ void draw_browser() {
   dprintf(STDOUT_FILENO, "\033[%d;1H\033[2K", 1);
 
   int end_point = Browser.count <= Win.height ? Browser.count : Win.height + Win.scroll_y - 2;
-  dprintf(STDOUT_FILENO, "\033[1;34m%s\033[0m\n", Browser.current_path);
+  if(strlen(Browser.current_path) > Win.width) {
+    char *temp_name = malloc(sizeof(char)*(Win.width));
+    if(!temp_name) {
+      perror("Malloc failled");
+      exit(0);
+    }
+    size_t start_pos = strlen(Browser.current_path) - Win.width;
+    memcpy(temp_name, Browser.current_path + start_pos, Win.width);
+    dprintf(STDOUT_FILENO, "\033[1;34m%s\033[0m\n", temp_name); 
+  }
+  else {
+    dprintf(STDOUT_FILENO, "\033[1;34m%s\033[0m\n", Browser.current_path); 
+  }
 
   for(int i = Win.scroll_y; i < end_point; i++) {
     if(i == Browser.selected) {
