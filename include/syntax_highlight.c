@@ -127,6 +127,8 @@ void syntax_highlight_and_print(char *line, int size) {
       write(STDOUT_FILENO, &line[pos], 1);
       pos++;
     }
+
+    if(pos >= size) break;
     
     int token_start = pos;
     int type = TOKEN_UNKNOWN;
@@ -183,7 +185,10 @@ void syntax_highlight_and_print(char *line, int size) {
       continue;
     }
     // Handle OPERATORS and PUNCTUATION
+    write(STDOUT_FILENO, ansi_colors[TOKEN_RESET], strlen(ansi_colors[TOKEN_RESET]));
     write(STDOUT_FILENO, &line[pos], 1);
     pos++;
   }
+
+  write(STDOUT_FILENO, ansi_colors[TOKEN_RESET], strlen(ansi_colors[TOKEN_RESET]));
 }

@@ -297,7 +297,7 @@ void execute_operator(int count, char c) {
 }
 
 void draw_status_bar() {
-
+  
 }
 // ===============================
 // BUFFER MANAGEMENT
@@ -371,8 +371,10 @@ void open_editor(char *filen) {
   }
 
   for (int i = 0; i < Buff.document_size; i++) {
-    free(Buff.document[i].line);
-    Buff.document[i].line = NULL;
+    if(Buff.document[i].line != NULL) {
+      free(Buff.document[i].line);
+      Buff.document[i].line = NULL;
+    }
     Buff.document[i].size = 0;
     Buff.document[i].is_dirty = 0;
   }
@@ -385,24 +387,25 @@ void open_editor(char *filen) {
     exit(0);
   }
 
-  char buffer[512];
+  char *buffer = NULL;
+  size_t buffer_len;
+  ssize_t line_len;
   Buff.document_size = 0;
-  while (fgets(buffer, sizeof(buffer), file)) {  
+
+  while((line_len = getline(&buffer, &buffer_len, file)) != -1) {  
     ensure_document_capacity();
 
-    int len = strlen(buffer);
-    if (len > 0 && buffer[len - 1] == '\n') {
-      buffer[len - 1] = '\0';
-      len--;
+    if(line_len > 0 && buffer[line_len - 1] == '\n') {
+      line_len--;
+      buffer[line_len] = '\0';
     }
-    if (len > 0 && buffer[len - 1] == '\r') {
-      buffer[len - 1] = '\0';
-      len--;
+    if (line_len > 0 && buffer[line_len - 1] == '\r') {
+      line_len--;
+      buffer[line_len] = '\0';
     }
 
-    Buff.document[Buff.document_size].size = len;
-    Buff.document[Buff.document_size].line = malloc(len +1);
-    Buff.document[Buff.document_size].is_dirty = 1;
+    Buff.document[Buff.document_size].size = line_len;
+    Buff.document[Buff.document_size].line = malloc(line_len +1);
 
     if(!Buff.document[Buff.document_size].line) {
       perror("Malloc buffer line failled");
@@ -410,9 +413,12 @@ void open_editor(char *filen) {
       return;
     }
 
-    strcpy(Buff.document[Buff.document_size].line, buffer);
+    memcpy(Buff.document[Buff.document_size].line, buffer, line_len);
     Buff.document_size++;
+    Buff.document[Buff.document_size].is_dirty = 1;
   }
+
+  free(buffer);
 
   Buff.file_name = filen;
   fclose(file);
@@ -448,12 +454,7 @@ void draw_editor() {
     }
   }
 
-  // Writing status bar
-  dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height - 1);
-  write(STDOUT_FILENO, "\033[2K", 4);
-  draw_status_bar();
-
-    // Writing command message
+  // Writing command message
   if(Buff.status_len > 0) {
     dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height);
     dprintf(STDOUT_FILENO, "%.*s", Buff.status_len, Buff.status_msg);
@@ -601,10 +602,11 @@ void delete_char() {
 
     ansi_emit(ANSI_CLEAR);
     mark_all_lines_dirty();
+    draw_editor();
     return;
   } 
 
-  for(int i = delete_pos; i < original_size - 1; i++) {
+  for(int i = delete_pos; i < original_size; i++) {
     Buff.document[Buff.cursor.y].line[i] = Buff.document[Buff.cursor.y].line[i+1];
   }
   Buff.document[Buff.cursor.y].size--;
@@ -693,7 +695,6 @@ void enter_viewing_mode() {
   move_cursor_horizontaly(-1);
   Buff.mode = MODE_VIEW;
   ansi_emit(ANSI_CURSOR_BLOCK);
-  clear_command_status();
 }
 
 void handle_viewing_input(char c) {
@@ -937,7 +938,7 @@ void cmd_save_file(void) {
   
   fclose(file);
   exit_command_mode();
-  set_command_status("Saved");
+  set_command_status("File saved");
 }
 
 void cmd_quit(void) {
@@ -974,8 +975,10 @@ void editor_key_press() {
         break;
       case MODE_BROWSER:
         handle_browser_input(c);
+        break;
       case MODE_MENU:
         handle_menu_input(c);
+        break;
     }
   }
 }
