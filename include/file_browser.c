@@ -14,6 +14,13 @@
 #define KEY_ENTER 10
 
 typedef enum {
+  DEFAULT_SORT,
+  NAME_SORT,
+} SortMode;
+
+#define SORT_MODE_SIZE 2
+
+typedef enum {
   ENTRY_FILE,
   ENTRY_DIR,
   ENTRY_PARENT,
@@ -32,6 +39,7 @@ typedef struct {
   int count;
   int selected;
   char current_path[PATH_LEN];
+  SortMode sort_mode;
 } FileBrowser;
 
 typedef struct {
@@ -113,6 +121,23 @@ FileEntry *load_all_entries(char *path, int *total_count) {
   return entries; 
 }
 
+void swap_entry(FileEntry *a, FileEntry *b) {
+  FileEntry c = *a;
+  *a = *b;
+  *b = c;
+}
+
+void sort_entries(FileEntry *entries, int size) {
+  for(int i = 0; i < size - 1; i++) {
+    for(int j = i + 1; j < size; j++) {
+      if(entries[i].type != ENTRY_DIR && entries[j].type == ENTRY_DIR) {
+        swap_entry(&entries[i], &entries[j]);
+        continue;
+      }
+    }
+  } 
+}
+
 void select_entry(int direction) {
   int max_size = Browser.count > Win.height ? Browser.count - 3 : Browser.count - 1;
   Browser.selected = clamp(Browser.selected + direction, 0, max_size);
@@ -135,6 +160,7 @@ void init_file_browser(char *current_dir) {
 
   Browser.entries = load_all_entries(Browser.current_path, &Browser.count);
   Browser.selected = 0;
+  Browser.sort_mode = DEFAULT_SORT;
 }
 
 void free_file_browser() {
@@ -232,6 +258,7 @@ void start_browsing(int width, int height) {
   Win.height = height;
   Win.scroll_y = 0;
   init_file_browser(NULL);
+  sort_entries(Browser.entries, Browser.count);
   draw_browser();
 }
 

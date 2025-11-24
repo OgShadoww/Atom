@@ -457,7 +457,7 @@ void draw_editor() {
   // Writing command message
   if(Buff.status_len > 0) {
     dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height);
-    dprintf(STDOUT_FILENO, "%.*s", Buff.status_len, Buff.status_msg);
+    dprintf(STDOUT_FILENO, "%s", Buff.status_msg);
   }
 
   // Showing cursor
