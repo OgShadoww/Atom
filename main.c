@@ -100,7 +100,7 @@ typedef struct {
   char *file_name;
   char pending_escape_char;
   int has_pending_escape;
-  char status_msg[128];
+  char *status_msg;
   int status_len;
 } Buffer;
 
@@ -210,24 +210,30 @@ int wait_for_input_with_timeout(int timeout_ms) {
 }
 
 void set_command_status(const char* s) {
-  if (!s) {
-    Buff.status_msg[0] = '\0';
-    Buff.status_len = 0;
-    return;
-  }
+  free(Buff.status_msg);
+  Buff.status_msg = NULL;
+  Buff.status_len = 0;
+
+  if (!s) return;
   
   size_t s_len = strlen(s);
-  size_t buffer_size = sizeof(Buff.status_msg);
+  char *tmp = malloc(s_len + 1);
+  if(!tmp) {
+    perror("Malloc failled");
+    exit(-1);
+  }
   
-  size_t copy_len = (s_len < buffer_size - 1) ? s_len : buffer_size - 1;
-  memcpy(Buff.status_msg, s, copy_len);
-  Buff.status_msg[copy_len] = '\0';
-  Buff.status_len = copy_len;
+  Buff.status_msg = tmp;
+  Buff.status_len = s_len;
+  memcpy(Buff.status_msg, s, Buff.status_len);
+  Buff.status_msg[s_len] = '\0';
 }
 
 void clear_command_status(void) {
-  Buff.status_msg[0] = '\0';
+  free(Buff.status_msg);
+  Buff.status_msg = NULL;
   Buff.status_len = 0;
+  return;
 }
 
 void mark_all_lines_dirty() {
@@ -317,7 +323,7 @@ void init_editor() {
   Buff.document = malloc(sizeof(Line) * Buff.document_capacity);
   Buff.pending_escape_char = 0;
   Buff.has_pending_escape = 0;
-  Buff.status_msg[0] = '\0';
+  Buff.status_msg = NULL;
   Buff.status_len = 0;
   if(!Buff.document) {
     perror("Malloc failled");
@@ -691,10 +697,12 @@ void move_cursor_verticaly(int direction) {
 
 // --- VIEWING MODE ---
 
-void enter_viewing_mode() { 
+void enter_viewing_mode() {
+  clear_command_status();
   move_cursor_horizontaly(-1);
   Buff.mode = MODE_VIEW;
   ansi_emit(ANSI_CURSOR_BLOCK);
+  draw_editor();
 }
 
 void handle_viewing_input(char c) {
@@ -763,6 +771,7 @@ void enter_inserting_mode() {
   ansi_emit(ANSI_CURSOR_BAR);
   clear_command_status();
   set_command_status("-- INSERT --");
+  draw_editor();
 }
 
 void handle_inserting_input(char c) {
@@ -838,6 +847,7 @@ void handle_inserting_input(char c) {
 void exit_inserting_mode() {
   clear_command_status();
   enter_viewing_mode();
+  draw_editor();
 }
 
 // --- COMMAND MODE ---
