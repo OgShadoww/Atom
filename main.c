@@ -160,6 +160,7 @@ void start_browsing(int width, int height);
 void handle_browser_input(char c);
 void free_file_browser();
 void syntax_highlight_and_print(char *line, int size);
+void handle_dotfile(); 
 
 // ----------
 // HELPERS
@@ -995,6 +996,7 @@ void editor_key_press() {
 
 void start_buffer(char *filepath) {
   ansi_emit(ANSI_CLEAR);
+  handle_dotfile();
   init_editor();
   open_editor(filepath);
   Buff.mode = MODE_VIEW;
