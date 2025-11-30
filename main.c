@@ -40,6 +40,7 @@ enum Key {
 
 enum AnsiCode {
   ANSI_CLEAR,
+  ANSI_CLEAR_LINE,
   ANSI_CLEAR_SCROLL,
   ANSI_CURSOR_HIDE,
   ANSI_CURSOR_HOME,
@@ -52,6 +53,7 @@ enum AnsiCode {
 
 const char *ansi_codes[] = {  
   [ANSI_CLEAR] = "\033[2J",
+  [ANSI_CLEAR_LINE] = "\033[2K",
   [ANSI_CLEAR_SCROLL] = "\033[3J",
   [ANSI_CURSOR_HIDE] = "\033[?25l",
   [ANSI_CURSOR_HOME] = "\033[1;1H", 
@@ -304,7 +306,7 @@ void execute_operator(int count, char c) {
 }
 
 void draw_status_bar() {
-  
+   
 }
 // ===============================
 // BUFFER MANAGEMENT
@@ -456,7 +458,6 @@ void draw_editor() {
     if(Buff.document[i].is_dirty) {
       dprintf(STDOUT_FILENO, "\033[%d;1H\033[2K", i - Win.scroll_y + 1);
       syntax_highlight_and_print(Buff.document[i].line, Buff.document[i].size);
-      //write(STDOUT_FILENO, Buff.document[i].line, Buff.document[i].size);
       Buff.document[i].is_dirty = 0;
     }
   }
@@ -465,6 +466,10 @@ void draw_editor() {
   if(Buff.status_len > 0) {
     dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height);
     dprintf(STDOUT_FILENO, "%s", Buff.status_msg);
+  }
+  else {
+    dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height);
+    ansi_emit(ANSI_CLEAR_LINE);
   }
 
   // Showing cursor
@@ -699,7 +704,6 @@ void move_cursor_verticaly(int direction) {
 // --- VIEWING MODE ---
 
 void enter_viewing_mode() {
-  clear_command_status();
   move_cursor_horizontaly(-1);
   Buff.mode = MODE_VIEW;
   ansi_emit(ANSI_CURSOR_BLOCK);
@@ -854,6 +858,7 @@ void exit_inserting_mode() {
 // --- COMMAND MODE ---
 
 void enter_command_mode() {
+  clear_command_status();
   Buff.mode = MODE_COMMAND;
   ansi_emit(ANSI_CUROSR_UNDERLINE);
   dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height);
@@ -996,7 +1001,7 @@ void editor_key_press() {
 
 void start_buffer(char *filepath) {
   ansi_emit(ANSI_CLEAR);
-  handle_dotfile();
+  //handle_dotfile();
   init_editor();
   open_editor(filepath);
   Buff.mode = MODE_VIEW;
