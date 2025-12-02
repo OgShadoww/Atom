@@ -60,7 +60,7 @@ void handle_dotfile() {
     FILE *dotfile = fopen(DOTFILE_PATH, "w");
     if(!dotfile) {
       perror("Error opening file");
-      exit(-1);
+      exit(EXIT_FAILURE);
     }
   
     for(int i = 0; i < SETTING_COUNT; i++) {

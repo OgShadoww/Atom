@@ -223,7 +223,7 @@ void set_command_status(const char* s) {
   char *tmp = malloc(s_len + 1);
   if(!tmp) {
     perror("Malloc failled");
-    exit(-1);
+    exit(EXIT_FAILURE);
   }
   
   Buff.status_msg = tmp;
@@ -306,7 +306,21 @@ void execute_operator(int count, char c) {
 }
 
 void draw_status_bar() {
-   
+  dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height - 1);
+  float percent = (((float)Buff.cursor.y+1) / Buff.document_size) * 100;
+  if(strlen(Buff.file_name) > Win.width) {
+    char *t_name = malloc(Win.width - 20);
+    if(!t_name) {
+      perror("Malloc failled");
+      exit(EXIT_FAILURE);
+    }
+    memcpy(t_name, Buff.file_name + (strlen(Buff.file_name) - Win.width), Win.width - 20);
+    dprintf(STDOUT_FILENO, "%s %d %d %d%%", t_name, Buff.cursor.y, Buff.cursor.x, (int)percent);
+    free(t_name);
+  }
+  else {
+    dprintf(STDOUT_FILENO, "%s %d %d %d%%", Buff.file_name, Buff.cursor.y, Buff.cursor.x, (int)percent);   
+  }
 }
 // ===============================
 // BUFFER MANAGEMENT
@@ -330,7 +344,7 @@ void init_editor() {
   Buff.status_len = 0;
   if(!Buff.document) {
     perror("Malloc failled");
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
   for(int i = 0; i < Buff.document_capacity; i++) {
@@ -355,7 +369,7 @@ void ensure_document_capacity() {
     Line *tmp = realloc(Buff.document, sizeof(Line) * Buff.document_capacity);
     if (!tmp) {
       perror("realloc");
-      exit(1);
+      exit(EXIT_FAILURE);
     }
     Buff.document = tmp;
     for(int i = Buff.document_size; i < Buff.document_capacity; i++) {
@@ -371,12 +385,12 @@ void open_editor(char *filen) {
   if (stat(filen, &st) != 0) {
     dprintf(STDERR_FILENO, "\033[1;31mError:\033[0m File '%s' not found.\n", filen);
     disable_raw_mode();
-    exit(1);
+    exit(EXIT_FAILURE);
   }
   if (S_ISDIR(st.st_mode)) {
     dprintf(STDERR_FILENO, "\033[1;31mError:\033[0m '%s' is a directory.\n", filen);
     disable_raw_mode();
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
   for (int i = 0; i < Buff.document_size; i++) {
@@ -393,7 +407,7 @@ void open_editor(char *filen) {
 
   if (!file) {
     perror("Error opening file");
-    exit(0);
+    exit(EXIT_FAILURE);
   }
 
   char *buffer = NULL;
@@ -472,6 +486,8 @@ void draw_editor() {
     ansi_emit(ANSI_CLEAR_LINE);
   }
 
+  draw_status_bar();
+
   // Showing cursor
   int screen_y = Buff.cursor.y - Win.scroll_y + 1;
   dprintf(STDOUT_FILENO, "\033[%d;%dH", screen_y, Buff.cursor.x + 1);
@@ -489,7 +505,7 @@ void append_char(char c) {
     ensure_document_capacity();
     Buff.document[0].size = 1;
     Buff.document[0].line = malloc(1);
-    if (!Buff.document[0].line) { perror("malloc"); exit(1); }
+    if (!Buff.document[0].line) { perror("malloc"); exit(EXIT_FAILURE); }
     Buff.document[0].line[0] = '\0';
     Buff.document[0].is_dirty = 1;
     Buff.document_size = 1;
@@ -502,7 +518,7 @@ void append_char(char c) {
 
   Buff.document[Buff.cursor.y].size++;
   Buff.document[Buff.cursor.y].line = realloc(Buff.document[Buff.cursor.y].line, Buff.document[Buff.cursor.y].size + 1);
-  if (!Buff.document[Buff.cursor.y].line) { perror("realloc"); exit(1); }
+  if (!Buff.document[Buff.cursor.y].line) { perror("realloc"); exit(EXIT_FAILURE); }
   Buff.document[Buff.cursor.y].is_dirty = 1;
 
   for(int i = original_size; i >= insert_pos; i--) {
@@ -518,7 +534,7 @@ void append_line() {
     ensure_document_capacity();
     Buff.document[0].size = 0;
     Buff.document[0].line = malloc(1);
-    if (!Buff.document[0].line) { perror("malloc"); exit(1); }
+    if (!Buff.document[0].line) { perror("malloc"); exit(EXIT_FAILURE); }
     Buff.document[0].line[0] = '\0';
     Buff.document[0].is_dirty = 1;
     Buff.document_size = 1;
@@ -546,7 +562,7 @@ void append_line() {
   
   Buff.document[current_line + 1].size = remaining_size;
   Buff.document[current_line + 1].line = malloc(remaining_size + 1);
-  if(!Buff.document[current_line + 1].line) { perror("malloc"); exit(1); }
+  if(!Buff.document[current_line + 1].line) { perror("malloc"); exit(EXIT_FAILURE); }
 
   if (remaining_size > 0) {
     memcpy(Buff.document[current_line + 1].line,
@@ -558,7 +574,7 @@ void append_line() {
 
   Buff.document[current_line].size = split_pos;
   Buff.document[current_line].line = realloc(Buff.document[current_line].line, split_pos + 1);
-  if(!Buff.document[current_line].line) { perror("realloc"); exit(1); };
+  if(!Buff.document[current_line].line) { perror("realloc"); exit(EXIT_FAILURE); };
   Buff.document[current_line].line[split_pos] = '\0';
   Buff.document[current_line].is_dirty = 1;  
 
@@ -586,7 +602,7 @@ void delete_char() {
         Buff.document[current_pos - 1].size = previous_content_size + current_size;
   
         Buff.document[current_pos - 1].line = realloc(Buff.document[current_pos - 1].line, previous_content_size + current_size + 1);
-        if(!Buff.document[current_pos - 1].line) { perror("realloc"); exit(1); };
+        if(!Buff.document[current_pos - 1].line) { perror("realloc"); exit(EXIT_FAILURE); };
         Buff.document[current_pos - 1].is_dirty = 1;
   
         memcpy(
@@ -623,7 +639,7 @@ void delete_char() {
   }
   Buff.document[Buff.cursor.y].size--;
   Buff.document[Buff.cursor.y].line = realloc(Buff.document[Buff.cursor.y].line, Buff.document[Buff.cursor.y].size + 1);
-  if(!Buff.document[Buff.cursor.y].line) { perror("realloc"); exit(1); };
+  if(!Buff.document[Buff.cursor.y].line) { perror("realloc"); exit(EXIT_FAILURE); };
   Buff.document[Buff.cursor.y].is_dirty = 1;
 
   move_cursor_horizontaly(-1);
@@ -963,7 +979,7 @@ void cmd_quit(void) {
   ansi_emit(ANSI_CLEAR);
   ansi_emit(ANSI_CURSOR_HOME);
   write(STDOUT_FILENO, "\033[0m", 4);
-  exit(0);
+  exit(EXIT_SUCCESS);
 }
 
 // ===============================
@@ -1022,7 +1038,7 @@ int main(int arg, char **file) {
     start_menu(Win.height, Win.width); 
     editor_key_press();
     disable_raw_mode();
-    exit(0);
+    exit(EXIT_SUCCESS);
   }
   if(strcmp(file[1], ".") == 0) {
     Buff.mode = MODE_BROWSER;

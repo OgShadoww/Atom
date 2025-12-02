@@ -180,7 +180,7 @@ void draw_browser() {
     char *temp_name = malloc(sizeof(char)*(Win.width));
     if(!temp_name) {
       perror("Malloc failled");
-      exit(0);
+      exit(EXIT_FAILURE);
     }
     size_t start_pos = strlen(Browser.current_path) - Win.width + 1;
     memcpy(temp_name, Browser.current_path + start_pos, Win.width);
