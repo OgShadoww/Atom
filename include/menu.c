@@ -1,6 +1,9 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+int WIDTH, HEIGHT;
 
 void cmd_quit();
 
@@ -34,31 +37,85 @@ int get_visible_length(const char *str) {
   return len;
 }
 
-void print_menu(int win_h, int win_w) {
+void print_menu() {
   write(STDOUT_FILENO, "\033[2J", 4);
   write(STDOUT_FILENO, "\033[1;1H", 7);
     
   int line_count = 11;
-  int start_y = win_h / 2 - line_count / 2;
+  int start_y = HEIGHT / 2 - line_count / 2;
     
   for(int i = 0; i < line_count; i++) {
-    int center_x = (win_w - get_visible_length(welcome_lines[i])) / 2;
+    int center_x = (WIDTH - get_visible_length(welcome_lines[i])) / 2;
     dprintf(STDOUT_FILENO, "\033[%d;%dH", start_y + i, center_x + 1);
     write(STDOUT_FILENO, welcome_lines[i], strlen(welcome_lines[i]));
   }
     
-  dprintf(STDOUT_FILENO, "\033[%d;1H", win_h);
+  dprintf(STDOUT_FILENO, "\033[%d;1H", 1);
 }
 
+void process_menu_command_mode(char *buffer) {
+  if(strcmp(buffer, "help") == 0) {
+    
+  }
+  else if(strncmp(buffer, "open", 4) == 0) {
+    
+  }
+  else if(strcmp(buffer, "q") == 0) {
+    cmd_quit();
+    return;
+  }
+}
+
+void handle_menu_command_mode() {
+  char c;
+  char buffer[256];
+
+  while(1) {
+    read(STDIN_FILENO, &c, sizeof(c)); 
+
+    int i = 0;
+    
+    if(!c) {
+      perror("Error reading character");
+      exit(EXIT_FAILURE);
+    }
+
+    switch (c) {
+      case 10:  // Enter key
+        process_menu_command_mode(buffer);
+        break;
+      case 127: // Backspace
+        write(STDOUT_FILENO, "\b \b", 4);
+        break;
+      default:
+        i++;
+        buffer[i] = c;
+        write(STDOUT_FILENO, &c, sizeof(c));
+        break;
+    }
+  }
+}
+
+void enter_menu_command_mode() {
+  dprintf(STDOUT_FILENO, "\033[%d;1H", HEIGHT);
+  write(STDOUT_FILENO, "\033[2K", 4);
+  write(STDOUT_FILENO, ":", 1);
+  handle_menu_command_mode();
+}
 
 void handle_menu_input(char c) {
   switch(c) {
+    case ':':
+      enter_menu_command_mode();
+      break;
     case 'q': cmd_quit(); break; 
   }
 }
 
 void start_menu(int win_h, int win_w) {
-  print_menu(win_h, win_w);
+  WIDTH = win_w;
+  HEIGHT = win_h;
+  print_menu();
 
   return;
 }
