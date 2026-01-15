@@ -110,6 +110,7 @@ void handle_menu_command_mode() {
 
     switch (c) {
       case 10:  // Enter key
+        buffer[i+1] = '\0';
         process_menu_command_mode(buffer);
         break;
       case 127: // Backspace
