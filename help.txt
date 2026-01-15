@@ -1,0 +1,8 @@
+*help.txt*      For Atom version 1.1  Last change: 2026 Jan 8
+
+                        Atom - main help file
+                                                                         k
+      Move around:  Use the cursor keys, or "h" to go left,            h   l
+                    "j" to go down, "k" to go up, "l" to go right.       j
+
+Close this window:  Use ":q<Enter>".

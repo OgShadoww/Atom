@@ -2,10 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 int WIDTH, HEIGHT;
 
 void cmd_quit();
+void start_buffer(char *filepath);
 
 const char *welcome_lines[11] = {
   "\033[38;2;255;120;70m原子\033[0m\n",
@@ -53,15 +55,42 @@ void print_menu() {
   dprintf(STDOUT_FILENO, "\033[%d;1H", 1);
 }
 
+int check_file_exist(const char *path) {
+  struct stat st;
+
+  if(stat(path, &st) == -1)
+    return 0;
+  else if(S_ISDIR(st.st_mode))
+    return -1;
+
+  return 1;
+}
+
 void process_menu_command_mode(char *buffer) {
-  if(strcmp(buffer, "help") == 0) {
-    
+  if(strncmp(buffer, "help", 4) == 0) {
+    start_buffer("help.txt");
   }
   else if(strncmp(buffer, "open", 4) == 0) {
-    
+    if(check_file_exist(buffer+5) == 1) {
+      start_buffer(buffer+5);
+    }
+    else if(check_file_exist(buffer+5) == -1) {
+      dprintf(STDERR_FILENO, "\033[1;31mError:\033[0m '%s' is a directory.\n", buffer+5);
+      return;
+    }
+    else {
+      dprintf(STDERR_FILENO, "\033[1;31mError:\033[0m '%s' is not exist.\n", buffer+5);
+    }
+  }
+  else if(strncmp(buffer, "new ", 4) == 0) {
+    char *name = buffer+4;
+    start_buffer(name);
   }
   else if(strcmp(buffer, "q") == 0) {
     cmd_quit();
+  }
+  else {
+    dprintf(STDERR_FILENO, "\033[1;31mError:\033[0m '%s' no command found.\n", buffer);
     return;
   }
 }
@@ -69,12 +98,11 @@ void process_menu_command_mode(char *buffer) {
 void handle_menu_command_mode() {
   char c;
   char buffer[256];
+  int i = 0;
 
   while(1) {
     read(STDIN_FILENO, &c, sizeof(c)); 
 
-    int i = 0;
-    
     if(!c) {
       perror("Error reading character");
       exit(EXIT_FAILURE);
@@ -86,10 +114,11 @@ void handle_menu_command_mode() {
         break;
       case 127: // Backspace
         write(STDOUT_FILENO, "\b \b", 4);
+        i--;
         break;
       default:
-        i++;
         buffer[i] = c;
+        i++;
         write(STDOUT_FILENO, &c, sizeof(c));
         break;
     }

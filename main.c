@@ -383,11 +383,10 @@ void ensure_document_capacity() {
 void open_editor(char *filen) {
   struct stat st;
   if (stat(filen, &st) != 0) {
-    dprintf(STDERR_FILENO, "\033[1;31mError:\033[0m File '%s' not found.\n", filen);
-    disable_raw_mode();
-    exit(EXIT_FAILURE);
+    FILE *new_f = fopen(filen, "w");
+    fclose(new_f);
   }
-  if (S_ISDIR(st.st_mode)) {
+  else if (S_ISDIR(st.st_mode)) {
     dprintf(STDERR_FILENO, "\033[1;31mError:\033[0m '%s' is a directory.\n", filen);
     disable_raw_mode();
     exit(EXIT_FAILURE);
