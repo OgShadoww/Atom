@@ -2,4 +2,4 @@ atom
 .DS_STORE
 output.txt
 test.txt
-
+*.dSYM/
