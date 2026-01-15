@@ -307,7 +307,7 @@ void execute_operator(int count, char c) {
 
 void draw_status_bar() {
   dprintf(STDOUT_FILENO, "\033[%d;1H", Win.height - 1);
-  float percent = (((float)Buff.cursor.y+1) / Buff.document_size) * 100;
+  float percent = Buff.document_size > 0 ? (((float)Buff.cursor.y+1) / Buff.document_size) * 100 : 0;
   if(strlen(Buff.file_name) > Win.width) {
     char *t_name = malloc(Win.width - 20);
     if(!t_name) {
