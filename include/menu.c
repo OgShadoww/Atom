@@ -109,13 +109,19 @@ void handle_menu_command_mode() {
     }
 
     switch (c) {
-      case 10:  // Enter key
-        buffer[i+1] = '\0';
+      case '\r':
+      case '\n':  // Enter key
+        buffer[i] = '\0';
         process_menu_command_mode(buffer);
+        i = 0;
         break;
+      case 8:
       case 127: // Backspace
-        write(STDOUT_FILENO, "\b \b", 4);
-        i--;
+        if(i > 0) {
+          i--;
+          buffer[i] = '\0';
+          write(STDOUT_FILENO, "\b \b", 3);
+        }
         break;
       default:
         buffer[i] = c;

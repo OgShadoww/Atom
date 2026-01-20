@@ -247,7 +247,11 @@ void open_entry(FileEntry entry) {
 void handle_browser_input(char c) {
   switch (c) {
     case 'q': end_browsing(); break;
-    case KEY_ENTER: open_entry(Browser.entries[Browser.selected]); break;
+    case KEY_ENTER: {
+      open_entry(Browser.entries[Browser.selected]); 
+      free_file_browser();
+      break;
+    }
     case 'j': select_entry(1); draw_browser(); break;
     case 'k': select_entry(-1); draw_browser(); break;
   } 
